@@ -1,0 +1,37 @@
+{
+  "name": "papervine-cli-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Preview a docs site of MDX + docs.json locally. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
+  "license": "MIT",
+  "homepage": "https://github.com/papervine/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papervine/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/papervine/cli/issues"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "node apps/cli/bin/papervine.mjs dev",
+    "prepack": "npm run prepack --workspace papervine",
+    "typecheck": "tsc --noEmit -p apps/cli/tsconfig.json",
+    "test:unit": "vitest run",
+    "test:cli": "CLI_PKG_DOCS=examples/starter node tests/cli-package.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "typescript": "5.7.3",
+    "vitest": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

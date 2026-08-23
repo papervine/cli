@@ -1,0 +1,11 @@
+---
+title: Fixtures Home
+description: Regression fixtures exercising every M1 renderer fix.
+---
+
+This is the **fixtures home**. It exists to catch regressions in:
+
+- `docs.json` with an object `favicon` and a `navigation.languages` wrapper (this page rendering at all proves the lenient parser + recursive nav work).
+- Unsupported top-level config keys being warned, not fatal.
+
+<Note>If you can read this, the recursive language/tab/group nav resolved.</Note>

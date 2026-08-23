@@ -1,0 +1,65 @@
+{
+  "name": "papervine",
+  "version": "0.1.0",
+  "description": "Preview a docs site of MDX + docs.json locally. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/papervine/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papervine/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/papervine/cli/issues"
+  },
+  "keywords": [
+    "papervine",
+    "docs",
+    "documentation",
+    "documentation-generator",
+    "docs-as-code",
+    "mdx",
+    "docs.json",
+    "cli",
+    "mintlify",
+    "mintlify-alternative",
+    "gitbook-alternative",
+    "readme-alternative",
+    "openapi",
+    "api-documentation"
+  ],
+  "bin": {
+    "papervine": "bin/papervine.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "files": [
+    "bin/",
+    "server/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "next build",
+    "prepack": "node scripts/prepack.mjs"
+  },
+  "devDependencies": {
+    "@papervine/renderer": "^0.1.0",
+    "@types/node": "22.10.7",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "autoprefixer": "10.4.20",
+    "next": "^16.3.0",
+    "postcss": "8.5.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "5.7.3"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

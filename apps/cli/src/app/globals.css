@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #16a34a;
+  --color-primary-light: #4ade80;
+  --color-primary-dark: #15803d;
+
+  /* Theme tokens — overridden per docs.json `theme` by layout.tsx
+     (@papervine/renderer/lib/theme). These are the fallbacks. */
+  --db-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --db-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --db-radius: 0.5rem;
+  --db-radius-lg: 0.75rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 7rem; /* clear the sticky navbar + tab bar for #anchor links */
+}
+
+body {
+  font-family: var(--db-font-sans);
+  @apply bg-white text-zinc-800 antialiased dark:bg-zinc-950 dark:text-zinc-200;
+}
+
+/* --- Article prose (lightweight, no typography plugin) --- */
+.prose {
+  @apply text-[0.95rem] leading-7 text-zinc-700 dark:text-zinc-300;
+}
+.prose > :first-child {
+  @apply mt-0;
+}
+.prose h1 {
+  @apply mb-2 mt-0 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50;
+}
+.prose h2 {
+  @apply mb-3 mt-10 border-b border-zinc-100 pb-2 text-xl font-semibold text-zinc-900 dark:border-zinc-800 dark:text-zinc-100;
+}
+.prose h3 {
+  @apply mb-2 mt-8 text-lg font-semibold text-zinc-900 dark:text-zinc-100;
+}
+/* Heading anchors (rehype-autolink-headings wraps the text in an <a>) must keep
+   the heading's own color and weight, not the link color. */
+.prose h1 a,
+.prose h2 a,
+.prose h3 a {
+  @apply font-[inherit] text-[inherit] no-underline hover:opacity-100;
+}
+.prose p {
+  @apply my-4;
+}
+.prose a {
+  @apply font-medium text-zinc-900 underline decoration-primary decoration-1 underline-offset-2 hover:decoration-2 dark:text-zinc-100;
+}
+/* Component links (Cards) opt out of prose link styling — outranks `.prose a`. */
+.prose a.card-link {
+  @apply font-normal text-inherit no-underline hover:opacity-100;
+}
+.prose ul {
+  @apply my-4 list-disc space-y-1 pl-6;
+}
+.prose ol {
+  @apply my-4 list-decimal space-y-1 pl-6;
+}
+.prose blockquote {
+  @apply my-4 border-l-4 border-zinc-200 pl-4 italic text-zinc-600 dark:border-zinc-700 dark:text-zinc-400;
+}
+.prose table {
+  @apply my-5 w-full border-collapse text-sm;
+}
+.prose th {
+  @apply border-b border-zinc-300 px-3 py-2 text-left font-semibold dark:border-zinc-700;
+}
+.prose td {
+  @apply border-b border-zinc-100 px-3 py-2 dark:border-zinc-800;
+}
+
+/* Inline code */
+.prose :not(pre) > code {
+  font-family: var(--db-font-mono);
+  @apply rounded bg-zinc-100 px-1.5 py-0.5 text-[0.85em] font-medium text-pink-600 before:content-[''] after:content-[''] dark:bg-zinc-800 dark:text-pink-400;
+}
+
+/* Code blocks (the MDX compiler's Shiki output: <pre class="shiki" ...>) */
+.prose pre {
+  font-family: var(--db-font-mono);
+  border-radius: var(--db-radius-lg);
+  @apply my-4 overflow-x-auto border border-zinc-200 p-4 text-sm dark:border-zinc-800;
+}
+.prose pre code {
+  @apply grid; /* per-line layout */
+}
+.prose pre code .line {
+  @apply min-h-[1.2em];
+}
+
+/*
+ * Shiki dual-theme: each token carries inline `color` (light) + `--shiki-dark`,
+ * and the <pre> carries `background-color` (light) + `--shiki-dark-bg`. In dark
+ * mode, swap to the dark variables.
+ */
+html.dark .prose pre.shiki {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+html.dark .prose pre.shiki span {
+  color: var(--shiki-dark) !important;
+}

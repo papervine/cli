@@ -1,0 +1,14 @@
+---
+title: Mermaid
+---
+
+MERMAID_PAGE_MARKER
+
+A mermaid fence must render as a diagram (a client Mermaid component, SSR'd as a container with
+aria-label="Diagram"), NOT as a Shiki-highlighted code block. This page has no other fenced code,
+so the presence of Shiki markup would mean the fence wasn't transformed.
+
+```mermaid
+graph TD
+  A[Start] --> B[End]
+```

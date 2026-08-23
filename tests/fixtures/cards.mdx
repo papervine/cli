@@ -1,0 +1,16 @@
+---
+title: Cards
+---
+
+Standalone cards (no CardGroup) — the exact shape that exposed the h-full /
+flex-stretch height bug. They must render at content height, not stretched.
+
+<Card title="Standalone One" icon="rocket" href="/guide">CARD_ONE_MARKER</Card>
+<Card title="Standalone Two" icon="book" href="https://example.com">CARD_TWO_MARKER</Card>
+
+Grouped cards:
+
+<CardGroup cols={2}>
+  <Card title="Grouped A" icon="star">CARD_A_MARKER</Card>
+  <Card title="Grouped B" icon="zap">CARD_B_MARKER</Card>
+</CardGroup>

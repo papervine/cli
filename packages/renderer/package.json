@@ -1,0 +1,46 @@
+{
+  "name": "@papervine/renderer",
+  "version": "0.1.0",
+  "description": "Papervine renderer-core — MDX + docs.json rendering, shared by the CLI and the hosted app. Internal: not published to npm.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/papervine/papervine#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papervine/papervine.git",
+    "directory": "packages/renderer"
+  },
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "files": [
+    "index.ts",
+    "lib/",
+    "components/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@mdx-js/mdx": "^3.1.1",
+    "@mintlify/mdx": "^4.0.0",
+    "@scalar/openapi-parser": "^0.28.6",
+    "clsx": "2.1.1",
+    "gray-matter": "4.0.3",
+    "image-size": "^2.0.0",
+    "lucide-react": "0.474.0",
+    "mermaid": "^11.16.0",
+    "rehype-autolink-headings": "7.1.0",
+    "rehype-slug": "6.0.0",
+    "remark-gfm": "4.0.0",
+    "server-only": "^0.0.1",
+    "shiki": "1.29.2",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "next": "^16.3.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/mdx": "2.0.13"
+  }
+}

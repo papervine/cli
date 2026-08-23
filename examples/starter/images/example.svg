@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 240" width="480" height="240" role="img" aria-label="Papervine starter example image">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7C3AED" />
+      <stop offset="1" stop-color="#A78BFA" />
+    </linearGradient>
+  </defs>
+  <rect width="480" height="240" rx="12" fill="url(#g)" />
+  <text x="240" y="128" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="600" fill="#ffffff">Framed image</text>
+</svg>
