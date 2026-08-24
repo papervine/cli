@@ -158,7 +158,23 @@ rmSync(TEMPLATE_OUT, { recursive: true, force: true });
 if (!existsSync(TEMPLATE_SRC)) {
   fail(`no scaffold template at ${TEMPLATE_SRC} — \`papervine new\` would ship broken.`);
 }
-cpSync(TEMPLATE_SRC, TEMPLATE_OUT, COPY);
+cpSync(TEMPLATE_SRC, TEMPLATE_OUT, {
+  ...COPY,
+  // Never copy local-only files into a template that gets published.
+  //
+  // `examples/starter` is a working site someone runs locally, so it accumulates exactly the
+  // files you must not ship: `.env.local` with an API key was found sitting in it. Git ignores
+  // those, which is why nothing upstream complained — but this is a *filesystem* copy, and
+  // `files` ships `template/` wholesale, so the key would have gone into the npm tarball and
+  // then to every `papervine new`. Filter here rather than trusting the source directory to stay
+  // clean, because it will not.
+  filter: (src) => {
+    const name = path.basename(src);
+    if (name.startsWith(".env")) return false;
+    if (name === ".git" || name === "node_modules" || name === ".DS_Store") return false;
+    return true;
+  },
+});
 
 if (!existsSync(path.join(OUT, "server.js"))) {
   fail(`normalization failed — no server.js in ${OUT}`);

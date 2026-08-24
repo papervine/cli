@@ -174,6 +174,66 @@ function imageOptimizationAvailable() {
   }
 }
 
+/**
+ * Load `.env.local` / `.env` from the docs project, the way every other Node tool does.
+ *
+ * Without this the only way to configure anything — an API key for the assistant, a model, a
+ * local inference URL — was to `export` it in the shell, because the server is spawned with
+ * `cwd` set to the *installed package*, not the user's project. A key sitting in `.env.local`
+ * next to `docs.json` did nothing at all, silently: the assistant just never appeared.
+ *
+ * Two rules, both about not surprising anyone:
+ *
+ *  - **An exported variable always wins.** `process.loadEnvFile` already refuses to overwrite an
+ *    existing value, and the fallback below matches that. So `ANTHROPIC_API_KEY=… papervine dev`
+ *    beats whatever is in a file, which is the direction people expect.
+ *  - **More specific is loaded first.** Because nothing overwrites, *first* write wins — so the
+ *    order is the reverse of what it looks like: `.env.local` before `.env`, and the content
+ *    directory before the working directory. Running `papervine dev ./docs` from a repo root
+ *    picks up a key in either place, preferring the one nearer the docs.
+ */
+function loadEnvFiles(contentDir) {
+  // `process.loadEnvFile` is Node 20.12+; `engines` allows 20.9, so parse it ourselves when the
+  // built-in isn't there rather than silently skipping the file on those versions.
+  const load = (file) => {
+    if (!existsSync(file)) return;
+    if (typeof process.loadEnvFile === "function") {
+      try {
+        process.loadEnvFile(file);
+      } catch {
+        // A malformed env file must not stop the preview from starting.
+      }
+      return;
+    }
+    try {
+      for (const raw of readFileSync(file, "utf8").split("\n")) {
+        const line = raw.trim();
+        if (!line || line.startsWith("#")) continue;
+        const eq = line.indexOf("=");
+        if (eq < 1) continue;
+        const key = line.slice(0, eq).replace(/^export\s+/, "").trim();
+        if (key in process.env) continue; // never override
+        let value = line.slice(eq + 1).trim();
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
+        process.env[key] = value;
+      }
+    } catch {
+      // Same reasoning: unreadable file, carry on.
+    }
+  };
+
+  const dirs = [contentDir];
+  if (path.resolve(process.cwd()) !== path.resolve(contentDir)) dirs.push(process.cwd());
+  for (const dir of dirs) {
+    for (const name of [".env.local", ".env"]) load(path.join(dir, name));
+  }
+}
+
 /** True when we can meaningfully ask the user a question. */
 function interactive() {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY);
@@ -337,6 +397,10 @@ async function runDev(argv) {
       fail(problem);
     }
   }
+
+  // Before anything reads configuration: the assistant's provider check below, and the server's
+  // own environment, both depend on what these files set.
+  loadEnvFiles(plan.dir);
 
   if (!existsSync(SERVER_ENTRY)) {
     fail(

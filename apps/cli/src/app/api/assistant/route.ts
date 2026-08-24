@@ -57,5 +57,8 @@ export async function POST(req: Request) {
     // index instead of rebuilding one per tool call.
     searchIndexKey: await contentVersion(CONTENT_DIR),
     hooks: {},
+    // The person reading this panel is the person who configured the model, so a wrong key
+    // should say so rather than "An error occurred."
+    exposeErrors: true,
   });
 }

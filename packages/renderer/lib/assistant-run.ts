@@ -84,10 +84,19 @@ export async function runAssistantConversation(params: {
    * typecheck none the wiser. The CLI passes `{}` to say "deliberately none".
    */
   hooks: AssistantHooks;
+  /**
+   * Send the real error text to the client instead of the SDK's generic string.
+   *
+   * True for the CLI, where the person reading the panel is the person who configured the model
+   * and needs to know their key is wrong. Left false for hosted sites, whose readers are not the
+   * operator and should not see provider internals — the reason is logged server-side either way.
+   */
+  exposeErrors?: boolean;
 }): Promise<Response> {
   const { record, billing, messages, pageSlug, contentSource, readerAccess, searchIndexKey } =
     params;
   const { hooks } = params;
+  const exposeErrors = params.exposeErrors ?? false;
 
   const run = <T,>(fn: () => Promise<T> | T): Promise<T> | T => {
     const inner = () => withReaderAccess(readerAccess, () => withSearchIndexKey(searchIndexKey, fn));
@@ -159,11 +168,26 @@ export async function runAssistantConversation(params: {
           });
         }
       },
-      onError: () => {
+      onError: ({ error }) => {
         if (eventId) hooks.setOutcome?.(eventId, "unanswered");
+        // Say what actually went wrong, on the server, always.
+        //
+        // The AI SDK masks stream errors as "An error occurred." before they reach the browser,
+        // which is right for a public site and useless for anyone trying to fix it: a bad key,
+        // an unreachable local model and a rate limit are indistinguishable. Logging here costs
+        // nothing and puts the real reason where the operator is already looking — for the CLI,
+        // the terminal running `papervine dev`.
+        console.error("Assistant request failed:", error);
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toUIMessageStreamResponse({
+      // Give the reader something they can act on. Provider errors here are operational
+      // ("invalid x-api-key", "model not found", connection refused) rather than sensitive, and
+      // the alternative — a panel that silently does nothing — is the worst possible outcome.
+      // `exposeErrors` lets the hosted caller keep the generic text for public readers.
+      onError: (error) =>
+        exposeErrors && error instanceof Error ? error.message : "An error occurred.",
+    });
   });
 }

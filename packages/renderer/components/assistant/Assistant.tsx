@@ -32,7 +32,7 @@ export function Assistant({ site }: { site?: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, status, stop, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/assistant" }),
   });
 
@@ -195,6 +195,15 @@ export function Assistant({ site }: { site?: string }) {
             {busy && lastIsUser && (
               <p className="text-sm text-zinc-400">Thinking…</p>
             )}
+            {error && <AssistantError error={error} />}
+          </div>
+        )}
+        {/* The empty state has its own branch above, so an error on the very first question —
+            the most likely moment for one, since that is when a bad key shows up — would
+            otherwise have nowhere to render. */}
+        {messages.length === 0 && error && (
+          <div className="mt-4">
+            <AssistantError error={error} />
           </div>
         )}
       </div>
@@ -242,6 +251,30 @@ export function Assistant({ site }: { site?: string }) {
 }
 
 type Part = { type: string; text?: string; state?: string };
+
+/**
+ * A failed request, made visible.
+ *
+ * The AI SDK masks server errors as "An error occurred." unless the route opts out, so the text
+ * here is often generic — which is why this also says where the real reason is. In the CLI that
+ * is the terminal running `papervine dev`; the route logs the underlying error there.
+ */
+function AssistantError({ error }: { error: Error }) {
+  const generic = /^an error occurred\.?$/i.test(error.message.trim());
+  return (
+    <div
+      role="alert"
+      className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+    >
+      <p className="m-0 font-medium">That question didn’t get an answer.</p>
+      <p className="m-0 mt-1 opacity-90">
+        {generic
+          ? "The model request failed — check the terminal running your docs server for the reason."
+          : error.message}
+      </p>
+    </div>
+  );
+}
 
 function Message({
   role,
