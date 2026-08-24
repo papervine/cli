@@ -34,8 +34,8 @@ Already have a folder of MDX and a `docs.json`? Skip straight to previewing it:
 npx papervine@latest dev ./docs
 ```
 
-Requires Node 20.9 or higher. The CLI ships a **prebuilt** renderer, so there's no
-toolchain to download and no first-run compile — it starts serving immediately.
+Requires Node 20.9 or higher. The CLI ships a **prebuilt** renderer, so there's no build
+toolchain to install and no first-run compile — it starts serving in about a second.
 
 ### Installation
 
@@ -165,22 +165,32 @@ compiled in.
 It carries **none** of the hosted product: no authentication, database, object
 storage, realtime, or AI assistant. Those are services of a hosted deployment, not
 things a local previewer needs, so they are absent from the package rather than
-disabled at runtime — nothing to install, and nothing to audit.
+disabled at runtime.
 
-One visible consequence: the navbar's search palette and "Ask AI" button are hosted
-features, so a local preview shows the docs chrome — logo, navigation, sidebar, table
-of contents — without them.
+The renderer has no runtime dependencies — it is compiled in. The one thing npm installs
+alongside it is [`sharp`](#images), an optional dependency for image optimization.
+
+**Search is included**, and works with no service behind it: `⌘K` searches your docs from an
+in-memory index the CLI builds over your pages on the first query, then reuses until you edit
+a file.
+
+The "Ask AI" assistant is a hosted feature and is not in the package, so a local preview
+shows the docs chrome — logo, navigation, sidebar, table of contents, search — without it.
 
 ### Compatibility
 
 **Papervine is Mintlify-compatible.** It reads the same MDX content and the same
-`docs.json` navigation file, so an existing Mintlify project renders as-is — no
-migration step, no proprietary build, no conversion tool:
+`docs.json` navigation file, so an existing Mintlify project runs with no migration step,
+no proprietary build and no conversion tool:
 
 ```
 git clone https://github.com/your-org/your-docs
 npx papervine dev ./your-docs
 ```
+
+One gap worth knowing before you point it at a large repo: **shared snippets aren't resolved
+yet.** A page that imports from `/snippets/` renders an inline notice where the snippet
+should be, rather than the snippet's content. The rest of the page renders normally.
 
 That also makes it a practical **GitBook or ReadMe alternative** if you'd rather keep
 your docs as MDX files in your own repo than in someone's CMS. Your content stays
