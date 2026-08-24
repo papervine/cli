@@ -171,8 +171,8 @@ The renderer has no runtime dependencies — it is compiled in. The one thing np
 alongside it is [`sharp`](#images), an optional dependency for image optimization.
 
 **Search is included**, and works with no service behind it: `⌘K` searches your docs from an
-in-memory index the CLI builds over your pages on the first query, then reuses until you edit
-a file.
+in-memory index built over your pages. It's built at startup and rebuilt in the background when
+you edit a file, so searching doesn't wait on it.
 
 The "Ask AI" assistant is a hosted feature and is not in the package, so a local preview
 shows the docs chrome — logo, navigation, sidebar, table of contents, search — without it.
