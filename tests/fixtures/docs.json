@@ -36,9 +36,7 @@
                   "unknowns",
                   "badfrontmatter",
                   "with-snippet",
-                  "mermaid",
-                  "author-code",
-                  "author-violation"
+                  "mermaid"
                 ]
               }
             ]

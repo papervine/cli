@@ -4,7 +4,6 @@ import { Card, CardGroup } from "./Card";
 import { Steps, Step } from "./Steps";
 import { Frame } from "./Frame";
 import { Tabs, Tab } from "./Tabs";
-import { CodeBlock } from "./CodeBlock";
 import { CodeGroup } from "./CodeGroup";
 import { Accordion, AccordionGroup } from "./Accordion";
 import { ParamField, ResponseField } from "./ApiField";
@@ -59,8 +58,6 @@ export const mdxComponents: MDXComponents = {
   Panel,
 
   // Code
-  // Intrinsic override: every fenced block routes through CodeBlock for the copy button.
-  pre: CodeBlock,
   CodeGroup,
   RequestExample,
   ResponseExample,

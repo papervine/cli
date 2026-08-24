@@ -38,7 +38,6 @@
   "files": [
     "bin/",
     "server/",
-    "template/",
     "README.md",
     "LICENSE"
   ],
@@ -62,8 +61,5 @@
   },
   "engines": {
     "node": ">=20.9.0"
-  },
-  "optionalDependencies": {
-    "sharp": "^0.35.3"
   }
 }

@@ -1,0 +1,307 @@
+---
+title: "Components"
+description: "Every component Papervine renders, with copyable examples. Fork this page as a reference."
+---
+
+Everything below works in any `.mdx` page with no imports. Copy any example straight into your
+own docs.
+
+<Note>
+  An unrecognized component degrades to its children rather than breaking the page, so an
+  unsupported feature never takes a page down.
+</Note>
+
+## Callouts
+
+<Note>Useful context that isn't essential.</Note>
+<Tip>A recommendation or shortcut.</Tip>
+<Info>Neutral background information.</Info>
+<Warning>Something that could bite.</Warning>
+<Check>A confirmation or completed step.</Check>
+<Danger>A destructive or irreversible action.</Danger>
+
+Or bring your own icon and color:
+
+<Callout icon="rocket" color="#7C3AED">
+  A custom callout, with any Lucide icon name and any CSS color.
+</Callout>
+
+## Banners
+
+<Banner type="info" dismissible>
+  A prominent announcement. Use `type="warning"` or `type="critical"` to raise the volume.
+</Banner>
+
+For a notice on *every* page, set `banner` in `docs.json` instead — it renders above the navbar
+site-wide:
+
+```json
+"banner": {
+  "content": "Version 2.0 is live. See the [changelog](/changelog).",
+  "dismissible": true
+}
+```
+
+## Badges
+
+Inline status labels: <Badge color="green">Stable</Badge> <Badge color="yellow">Beta</Badge> <Badge color="red">Deprecated</Badge>
+
+<Badge icon="star" color="blue" size="lg" shape="pill">Premium</Badge> <Badge color="gray" stroke>Outlined</Badge>
+
+## Icons
+
+Icons come from [Lucide](https://lucide.dev): <Icon icon="flag" size={20} /> <Icon icon="rocket" size={20} /> <Icon icon="database" size={20} color="#7C3AED" />
+
+<Note>
+  Font Awesome and Tabler names aren't resolved — they render nothing rather than breaking the
+  line. Use a Lucide name, or point `src` at any file of your own.
+</Note>
+
+`src` takes a path or a URL: <Icon src="/favicon.svg" size={20} />
+
+<Warning>
+  Pick an asset that reads on both light and dark backgrounds. A single-colour logo that works
+  on one will disappear on the other — `favicon.svg` is used above because it has its own
+  background.
+</Warning>
+
+## Tooltips
+
+Hover or focus a term for a definition: <Tooltip headline="MDX" tip="Markdown with JSX components mixed in — the format these pages are written in." cta="See the quickstart" href="/quickstart">MDX</Tooltip>.
+
+## Cards
+
+<CardGroup cols={2}>
+  <Card title="With a link" href="/quickstart" icon="rocket">
+    Cards take an optional `href` and become clickable.
+  </Card>
+  <Card title="Without one" icon="book-open">
+    Plain cards work too, for grouping related notes.
+  </Card>
+</CardGroup>
+
+## Tiles
+
+Tiles lead with a preview image, and pair with `<Columns>` for a grid:
+
+<Columns cols={2}>
+  <Tile href="/quickstart" title="Get started" description="Fork the repo and edit docs.json">
+    <img src="/images/preview.svg" alt="Preview" />
+  </Tile>
+  <Tile title="No link" description="Tiles work without an href too">
+    <img src="/images/preview.svg" alt="Preview" />
+  </Tile>
+</Columns>
+
+## Columns
+
+`<Columns cols={n}>` lays any children out in a responsive grid — cards, tiles, or plain prose.
+
+## Steps
+
+<Steps>
+  <Step title="First">Numbered, ordered instructions.</Step>
+  <Step title="Second">Each step can hold any content, including code.</Step>
+</Steps>
+
+## Tabs
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    brew install node
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    sudo apt install nodejs
+    ```
+  </Tab>
+</Tabs>
+
+## Code groups
+
+A `CodeGroup` turns several blocks into one tabbed panel — the tab label comes from the text
+after the language:
+
+<CodeGroup>
+
+```bash npm
+npm i papervine
+```
+
+```bash pnpm
+pnpm add papervine
+```
+
+```bash yarn
+yarn add papervine
+```
+
+</CodeGroup>
+
+## Accordions
+
+<AccordionGroup>
+  <Accordion title="Collapsed by default">
+    Good for FAQs and detail that would otherwise crowd the page.
+  </Accordion>
+  <Accordion title="Another one">
+    Accordions can contain any content, including code and other components.
+  </Accordion>
+</AccordionGroup>
+
+## Expandables
+
+<Expandable title="Nested properties">
+  Useful for documenting object shapes inside an API reference.
+</Expandable>
+
+## Frames
+
+Wrap an image to give it a border and a caption:
+
+<Frame caption="A framed image">
+  <img src="/images/preview.svg" alt="Example" />
+</Frame>
+
+## Trees
+
+<Tree>
+  <Tree.Folder name="app" defaultOpen>
+    <Tree.File name="layout.tsx" />
+    <Tree.File name="page.tsx" highlight />
+  </Tree.Folder>
+  <Tree.Folder name="lib">
+    <Tree.File name="utils.ts" />
+  </Tree.Folder>
+  <Tree.File name="docs.json" />
+</Tree>
+
+Also available as `<FileTree>`. A Markdown list works too, and is usually less typing — a
+trailing slash marks a folder, and so does having nested items:
+
+<FileTree>
+
+- docs/
+  - index.mdx
+  - guides/
+    - components.mdx
+- docs.json
+
+</FileTree>
+
+## Colors
+
+<Color variant="compact">
+  <Color.Item name="primary" value="#7C3AED" />
+  <Color.Item name="light" value="#A78BFA" />
+  <Color.Item name="themed" value={{ light: "#18181B", dark: "#FAFAFA" }} />
+</Color>
+
+## Mermaid
+
+A fenced `mermaid` block renders as a diagram, and follows the page's light/dark theme:
+
+```mermaid
+graph LR
+  Write["Write MDX"] --> Commit["Commit to Git"]
+  Commit --> Sync["Papervine syncs"]
+  Sync --> Live["Docs go live"]
+```
+
+## Fields and response fields
+
+<ParamField path="limit" type="integer" default="20">
+  How many records to return.
+</ParamField>
+
+<ParamField path="cursor" type="string">
+  An opaque cursor from a previous response.
+</ParamField>
+
+<ResponseField name="id" type="string" required>
+  The record's unique identifier.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp.
+</ResponseField>
+
+## Examples
+
+<RequestExample>
+
+```bash cURL
+curl https://api.example.com/v1/widgets \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```python Python
+import requests
+requests.get("https://api.example.com/v1/widgets")
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{ "id": "wid_123", "name": "Example widget" }
+```
+
+</ResponseExample>
+
+## Panel
+
+<Panel>
+  <Info>Panel content groups supplementary material for a page.</Info>
+</Panel>
+
+## Update
+
+<Update label="2026-08-23" description="v0.2.0" tags={["release"]}>
+  Each entry's label is an anchor, so a specific release is linkable.
+</Update>
+
+<Update label="2026-07-20" description="v0.1.0" tags={["release"]}>
+  The first tagged release.
+</Update>
+
+## Prompt
+
+<Prompt description="Ask an assistant to draft a page in this project's voice." icon="sparkles" actions={["copy", "cursor"]}>
+Write a new docs page describing the feature I just built. Match the tone of the existing pages, keep it task-focused, and use the components from /guides/components where they help.
+</Prompt>
+
+## GitHub
+
+<GitHub.Repo repo="papervine/starter" />
+
+## Visibility
+
+<Visibility for="humans">
+  <Note>You're reading the rendered site.</Note>
+</Visibility>
+
+<Visibility for="agents">
+This block is written for AI agents reading the Markdown, and is omitted from the page.
+</Visibility>
+
+## View
+
+<View title="JavaScript" icon="code">
+  ```js
+  console.log("Hello");
+  ```
+</View>
+
+<View title="Python" icon="terminal">
+  ```python
+  print("Hello")
+  ```
+</View>
+
+<Note>
+  Each `<View>` renders as a labelled section, so every variant stays readable and linkable.
+</Note>

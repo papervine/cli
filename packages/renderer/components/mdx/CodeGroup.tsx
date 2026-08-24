@@ -10,13 +10,9 @@ import {
 import clsx from "clsx";
 
 /**
- * Wraps multiple fenced code blocks in a tabbed view.
- *
- * Each tab's label comes from the fence's code title (```bash npm), which `remarkCodeTitles`
- * carries in on a `<CodeTitle data-code-title="npm">` wrapper — the serializer's highlighter
- * drops fence `meta`, so the label cannot be read off the `<pre>` itself. The `language`
- * attribute is the fallback for an untitled fence, which is why a group of untitled fences
- * reads "shellscript" three times over.
+ * Wraps multiple fenced code blocks in a tabbed view. The serializer emits each child
+ * is a bare `<pre class="shiki" language="...">`, so we derive each tab's label from
+ * the `language` attribute (their highlighter doesn't emit code titles).
  */
 
 type AnyProps = Record<string, unknown> & { children?: ReactNode };
@@ -28,10 +24,6 @@ function findLabel(node: ReactNode): string | undefined {
   const walk = (n: ReactNode): string | undefined => {
     if (!isValidElement(n)) return undefined;
     const props = n.props as AnyProps;
-    // Our own code-title wrapper carries the label as an attribute value — the most direct
-    // signal available, so it wins.
-    const codeTitle = props["data-code-title"];
-    if (typeof codeTitle === "string" && codeTitle) return codeTitle;
     if ("data-rehype-pretty-code-title" in props) {
       const text = Children.toArray(props.children).find((c) => typeof c === "string");
       if (typeof text === "string") return text;
@@ -75,7 +67,7 @@ export function CodeGroup({ children }: { children: ReactNode }) {
         ))}
       </div>
       {/* Flatten the figure/pre styling and hide the per-block title (the tab shows it). */}
-      <div className="[&_figure]:my-0 [&_pre]:my-0 [&_pre]:rounded-none [&_pre]:border-0 [&_[data-rehype-pretty-code-title]]:hidden [&_[data-code-title-bar]]:hidden [&_[data-code-title]]:my-0 [&_[data-code-title]]:rounded-none [&_[data-code-title]]:border-0">
+      <div className="[&_figure]:my-0 [&_pre]:my-0 [&_pre]:rounded-none [&_pre]:border-0 [&_[data-rehype-pretty-code-title]]:hidden">
         {blocks[active]}
       </div>
     </div>

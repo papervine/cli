@@ -160,23 +160,7 @@ async function buildIndexUncached() {
  * is edited live with no stable version) falls back to the per-request build so edits stay fresh.
  */
 const perRequestIndex = cache(buildIndexUncached);
-
-/**
- * The version→index cache, hung off `globalThis` rather than kept as a module local.
- *
- * A module-level `Map` assumes one module instance per process, and the bundler does not
- * guarantee that: Turbopack emitted the search module into **two** server chunks, so the CLI's
- * startup warmer and the `/api/search` route each got their own copy — and their own cache. The
- * warmer dutifully built an index the route could never see, which looked exactly like warming
- * not working at all (first search still paid the full ~270ms build on a 500-page repo).
- *
- * A `Symbol.for` key is shared across every copy in the process, so they all use one cache. The
- * entries are content-addressed, so a stale one from a previous dev reload simply never matches.
- */
-const CACHE_KEY = Symbol.for("papervine.search.indexByVersion");
-type IndexCache = Map<string, ReturnType<typeof buildIndexUncached>>;
-const globalCache = globalThis as typeof globalThis & { [CACHE_KEY]?: IndexCache };
-const indexByVersion: IndexCache = (globalCache[CACHE_KEY] ??= new Map());
+const indexByVersion = new Map<string, ReturnType<typeof buildIndexUncached>>();
 const MAX_CACHED_INDEXES = 32; // bound a long-lived multi-tenant process; evict the oldest
 
 // The version key also rides an AsyncLocalStorage so the retrieval surfaces that call `runSearch`
@@ -190,27 +174,6 @@ const searchKeyContext = new AsyncLocalStorage<string | null>();
  *  routes alongside `contentContext`). Pass null to force the per-request build (drafts). */
 export function withSearchIndexKey<T>(key: string | null, fn: () => T): T {
   return searchKeyContext.run(key, fn);
-}
-
-/**
- * Build and cache the index for `indexKey` without searching it.
- *
- * `runSearch` returns early on an empty term — before it ever reaches the index — so there is no
- * way to warm the cache through it without inventing a fake query. Callers that know a search is
- * *coming* (the CLI, which warms at startup and again whenever the previewed files change) use
- * this instead, so the reader's first keystroke hits a built index rather than paying for the
- * build.
- *
- * Resolves either way: warming is an optimisation, and a failure here must not take down the
- * caller. A failed build is not cached (see `getIndex`), so the lazy path simply retries.
- */
-export async function warmSearchIndex(indexKey: string | null | undefined): Promise<boolean> {
-  try {
-    await getIndex(indexKey);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function getIndex(indexKey: string | null | undefined): ReturnType<typeof buildIndexUncached> {
