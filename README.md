@@ -132,7 +132,7 @@ docs repos you trust — the same care you'd take before `npm install` in a proj
 
 ### Get started
 
-Docs at [papervine.io](https://papervine.io) · source and issues at
+Docs at [papervine.io](https://docs.papervine.io) · source and issues at
 [github.com/papervine/cli](https://github.com/papervine/cli).
 
 MIT licensed.
