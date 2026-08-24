@@ -376,10 +376,41 @@ async function runDev(argv) {
     },
   });
 
-  const forward = (sig) => () => child.kill(sig);
-  process.on("SIGINT", forward("SIGINT"));
-  process.on("SIGTERM", forward("SIGTERM"));
-  child.on("exit", (code) => process.exit(code ?? 0));
+  // Ctrl-C has to be the one thing that always works.
+  //
+  // Installing a signal handler *replaces* Node's default "terminate now", so this process now
+  // lives entirely at the mercy of the child: forward the signal, then wait for `exit`. If the
+  // server ever fails to go — a hung request, a shutdown that waits on a live handle, a bug in a
+  // dependency — Ctrl-C does nothing at all and pressing it again just re-sends the same signal
+  // it is already ignoring. There is no way out but another terminal.
+  //
+  // So the wait is bounded: forward, and if the child is still alive shortly after, SIGKILL it.
+  // A second Ctrl-C skips the wait entirely, which is what a person does when the first appears
+  // to have done nothing.
+  const GRACE_MS = 2_000;
+  let quitting = false;
+
+  const stop = (sig) => () => {
+    if (quitting) {
+      // Second press: stop asking.
+      child.kill("SIGKILL");
+      process.exit(130);
+    }
+    quitting = true;
+    child.kill(sig);
+    const grace = setTimeout(() => child.kill("SIGKILL"), GRACE_MS);
+    // Don't let the grace timer itself hold this process open once the child is gone.
+    grace.unref?.();
+  };
+
+  process.on("SIGINT", stop("SIGINT"));
+  process.on("SIGTERM", stop("SIGTERM"));
+
+  // Propagate how the child ended. `code` is null when it died from a signal, and the shell
+  // convention for that is 128 + the signal number — reporting 0 there would tell a script the
+  // preview exited cleanly when it was killed.
+  const SIGNAL_EXIT = { SIGINT: 130, SIGTERM: 143, SIGKILL: 137 };
+  child.on("exit", (code, signal) => process.exit(code ?? SIGNAL_EXIT[signal] ?? 1));
 }
 
 const [, , command, ...rest] = process.argv;

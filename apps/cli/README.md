@@ -4,8 +4,6 @@
 
 # Papervine
 
----
-
 **The Mintlify-compatible alternative — open-source MDX documentation.**
 
 Preview your docs locally with the same renderer that serves them in production. Point it at a folder of MDX and a `docs.json`.
