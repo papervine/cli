@@ -1,59 +1,18 @@
 ---
-title: Introduction
-description: A minimal Papervine docs site you can copy and make your own.
+title: "Introduction"
+description: "A starter docs site for Papervine — fork it to begin, or use it to explore the renderer."
 ---
 
-This folder is a complete, working docs site: a `docs.json` and a few MDX pages. Nothing
-else is required.
-
-Preview it from the repository root:
-
-```bash
-npm run dev -- examples/starter
-```
-
-Or, with the published CLI, from anywhere:
-
-```bash
-npx papervine dev
-```
-
-<Note>
-  Every page renders per request and is read from disk, so save a file and refresh to see
-  the change.
-</Note>
-
-## Make it yours
-
-<Steps>
-  <Step title="Copy the folder">
-    Copy `examples/starter` to wherever your docs should live, or start from it in a fresh
-    repository.
-  </Step>
-  <Step title="Edit docs.json">
-    Set `name`, pick your `colors`, and lay out the `navigation` tree. Every page in the
-    tree is a `.mdx` file at the matching path.
-  </Step>
-  <Step title="Write pages">
-    Add `.mdx` files with `title` and `description` frontmatter, then reference them from
-    the navigation.
-  </Step>
-</Steps>
-
-## What you get
+Welcome to the **Papervine Starter**. This repo is a working example you can fork to start your
+own docs site, and it doubles as a feature showcase.
 
 <CardGroup cols={2}>
-  <Card title="Navigation and search-friendly structure">
-    Tabs, groups, a sidebar, and an on-page table of contents, all driven by `docs.json`.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get a site running in a few minutes.
   </Card>
-  <Card title="Components">
-    Cards, Tabs, Steps, Callouts, CodeGroups, Accordions, Frames, and more — see
-    [Components](/components).
-  </Card>
-  <Card title="Dark mode">
-    Built in, with the appearance default set in `docs.json`.
-  </Card>
-  <Card title="API reference">
-    Point `docs.json` at an OpenAPI spec and endpoint pages are generated for you.
+  <Card title="Components" icon="puzzle" href="/components">
+    Every component the renderer supports, with a copyable snippet each.
   </Card>
 </CardGroup>
+
+This page is ungated — any reader who has signed in (or anyone, on a public site) can read it.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { loadPage, loadConfig } from "@papervine/renderer/lib/content";
+import { loadPage, loadConfig, loadAssetDimensions } from "@papervine/renderer/lib/content";
 import { buildNav, findGroupLabel } from "@papervine/renderer/lib/nav";
 import { loadApiCatalog } from "@papervine/renderer/lib/openapi";
 import { Mdx, extractToc } from "@papervine/renderer/lib/mdx";
@@ -48,6 +48,12 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
     // Eyebrow: the group this page belongs to, shown above the title.
     const sections = await buildNav(config);
     const eyebrow = findGroupLabel(sections, "/" + (slugStr || "index"));
+    // Measured off disk, and load-bearing: without it `Mdx` falls back to
+    // `assetDimensions = {}`, every image degrades to a bare <img> with no width or
+    // height, and nothing reaches next/image. The page still "works" — the images are
+    // served, they just reflow as they load and are never optimized — which is why this
+    // was missing for a while without any test noticing.
+    const assetDimensions = await loadAssetDimensions();
 
     return (
       <div className="flex items-start gap-10 px-8 py-10">
@@ -59,7 +65,7 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
               {page.frontmatter.description}
             </p>
           )}
-          <Mdx source={page.body} />
+          <Mdx source={page.body} assetDimensions={assetDimensions} />
         </article>
         <TableOfContents items={toc} />
       </div>

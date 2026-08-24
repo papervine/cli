@@ -1,8 +1,15 @@
 {
   "$schema": "https://papervine.io/schema.json",
   "name": "Fixtures",
-  "favicon": { "light": "/favicon.ico", "dark": "/favicon.ico" },
-  "colors": { "primary": "#7C3AED", "light": "#A78BFA", "dark": "#5B21B6" },
+  "favicon": {
+    "light": "/favicon.ico",
+    "dark": "/favicon.ico"
+  },
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A78BFA",
+    "dark": "#5B21B6"
+  },
   "unsupportedTopLevelKey": "should warn, not crash",
   "navigation": {
     "languages": [
@@ -12,8 +19,28 @@
           {
             "tab": "Docs",
             "groups": [
-              { "group": "Start", "pages": ["index", "guide", "components", "cards", "images"] },
-              { "group": "Edge cases", "pages": ["unknowns", "badfrontmatter", "with-snippet", "mermaid"] }
+              {
+                "group": "Start",
+                "pages": [
+                  "index",
+                  "guide",
+                  "components",
+                  "components-extended",
+                  "cards",
+                  "images"
+                ]
+              },
+              {
+                "group": "Edge cases",
+                "pages": [
+                  "unknowns",
+                  "badfrontmatter",
+                  "with-snippet",
+                  "mermaid",
+                  "author-code",
+                  "author-violation"
+                ]
+              }
             ]
           },
           {
@@ -23,5 +50,10 @@
         ]
       }
     ]
+  },
+  "banner": {
+    "content": "CONFIG_BANNER_MARKER",
+    "type": "warning",
+    "dismissible": true
   }
 }

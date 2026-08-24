@@ -1,112 +1,93 @@
 ---
-title: Components
-description: The building blocks available inside any MDX page.
+title: "Components"
+description: "Every component Papervine renders, with a copyable snippet under each example."
 ---
 
-Everything below works in any `.mdx` page with no imports.
-
-## Callouts
-
-<Note>Useful context that isn't essential.</Note>
-<Tip>A recommendation or shortcut.</Tip>
-<Warning>Something that could bite.</Warning>
-<Info>Neutral background information.</Info>
-
-## Cards
-
-<CardGroup cols={2}>
-  <Card title="With a link" href="/quickstart">
-    Cards take an optional `href` and become clickable.
-  </Card>
-  <Card title="Without one">
-    Plain cards work too, for grouping related notes.
-  </Card>
-</CardGroup>
-
-## Steps
-
-<Steps>
-  <Step title="First">Numbered, ordered instructions.</Step>
-  <Step title="Second">Each step can hold any content, including code.</Step>
-</Steps>
-
-## Tabs
-
-<Tabs>
-  <Tab title="macOS">
-    ```bash
-    brew install node
-    ```
-  </Tab>
-  <Tab title="Linux">
-    ```bash
-    sudo apt install nodejs
-    ```
-  </Tab>
-</Tabs>
-
-## Code
-
-Fenced blocks are syntax highlighted, with light and dark themes:
-
-```ts
-export function greet(name: string) {
-  return `Hello, ${name}`;
-}
-```
-
-A `CodeGroup` turns several blocks into one tabbed panel — the tab label comes from the
-text after the language:
-
-<CodeGroup>
-
-```bash npm
-npm i papervine
-```
-
-```bash pnpm
-pnpm add papervine
-```
-
-</CodeGroup>
-
-## Accordions
-
-<AccordionGroup>
-  <Accordion title="Collapsed by default">
-    Good for FAQs and detail that would otherwise crowd the page.
-  </Accordion>
-  <Accordion title="Another one">
-    Accordions can contain any content.
-  </Accordion>
-</AccordionGroup>
-
-## Expandable fields
-
-<Expandable title="Nested properties">
-  Useful for documenting object shapes.
-</Expandable>
-
-## Frames
-
-Wrap an image to give it a caption and a border:
-
-<Frame caption="A framed image">
-  <img src="/images/example.svg" alt="Example" />
-</Frame>
-
-## Diagrams
-
-Fenced `mermaid` blocks render as diagrams:
-
-```mermaid
-graph LR
-  A[docs.json] --> B[Papervine]
-  C[MDX files] --> B
-  B --> D[Your docs site]
-```
+Everything here works in any `.mdx` page with **no imports**. Each page shows the component
+rendered, then the exact source that produced it — hover a code block to copy it.
 
 <Note>
   An unrecognized component degrades to its children rather than breaking the page, so an
   unsupported feature never takes a page down.
 </Note>
+
+<Columns cols={2}>
+  <Card title="Accordions" icon="chevrons-down-up" href="/components/accordions">
+    Collapsible sections for FAQs and detail that would crowd the page.
+  </Card>
+  <Card title="Badges" icon="tag" href="/components/badges">
+    Inline status labels for versions, stability and deprecation.
+  </Card>
+  <Card title="Banners" icon="megaphone" href="/components/banners">
+    A prominent, optionally dismissible announcement.
+  </Card>
+  <Card title="Callouts" icon="info" href="/components/callouts">
+    Six severity levels, plus a bring-your-own-icon variant.
+  </Card>
+  <Card title="Cards" icon="layout-grid" href="/components/cards">
+    Linkable cards with an icon, for navigation and grouping.
+  </Card>
+  <Card title="Code blocks" icon="code" href="/components/code-blocks">
+    Syntax highlighting, titles and a copy button on every fence.
+  </Card>
+  <Card title="Code groups" icon="layers" href="/components/code-groups">
+    Several code blocks as one tabbed panel.
+  </Card>
+  <Card title="Colors" icon="palette" href="/components/colors">
+    Swatch lists for documenting a palette.
+  </Card>
+  <Card title="Columns" icon="columns-3" href="/components/columns">
+    A responsive grid for any children.
+  </Card>
+  <Card title="Examples" icon="file-json" href="/components/examples">
+    Request and response samples for an API reference.
+  </Card>
+  <Card title="Expandables" icon="chevron-right" href="/components/expandables">
+    An inline disclosure for nested detail.
+  </Card>
+  <Card title="Fields" icon="list" href="/components/fields">
+    Parameter and response field documentation.
+  </Card>
+  <Card title="Frames" icon="image" href="/components/frames">
+    A border and caption around an image or embed.
+  </Card>
+  <Card title="GitHub" icon="github" href="/components/github">
+    A repository card.
+  </Card>
+  <Card title="Icons" icon="shapes" href="/components/icons">
+    Inline icons from Lucide, or any file of your own.
+  </Card>
+  <Card title="Mermaid" icon="workflow" href="/components/mermaid">
+    Diagrams from a fenced mermaid block.
+  </Card>
+  <Card title="Panels" icon="panel-right" href="/components/panels">
+    Supplementary material grouped beside the page.
+  </Card>
+  <Card title="Prompts" icon="sparkles" href="/components/prompts">
+    A copyable AI prompt, with an optional editor hand-off.
+  </Card>
+  <Card title="Steps" icon="list-ordered" href="/components/steps">
+    Numbered, ordered instructions.
+  </Card>
+  <Card title="Tabs" icon="panels-top-left" href="/components/tabs">
+    Tabbed content for per-platform or per-language variants.
+  </Card>
+  <Card title="Tiles" icon="layout-dashboard" href="/components/tiles">
+    Cards that lead with a preview image.
+  </Card>
+  <Card title="Tooltips" icon="message-square" href="/components/tooltips">
+    A definition on hover or focus, with an optional link.
+  </Card>
+  <Card title="Trees" icon="folder-tree" href="/components/trees">
+    File and directory listings.
+  </Card>
+  <Card title="Updates" icon="history" href="/components/updates">
+    Changelog entries with linkable anchors.
+  </Card>
+  <Card title="Views" icon="eye" href="/components/views">
+    Variant content as labelled sections.
+  </Card>
+  <Card title="Visibility" icon="eye-off" href="/components/visibility">
+    Content for humans or for AI agents only.
+  </Card>
+</Columns>

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { LucideIcon } from "../LucideIcon";
@@ -39,8 +39,12 @@ export function Card({
 export function CardGroup({ cols = 2, children }: { cols?: number; children: ReactNode }) {
   return (
     <div
-      className="my-5 grid gap-4"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      // One column on phones: the author's column count only applies once there's room for it.
+      // A cols={2} grid at 390px leaves each card ~150px, which wraps headings mid-word. The
+      // count rides in as a CSS variable because a media query can't live in an inline style,
+      // and the breakpoint variant can't interpolate a runtime value.
+      className="my-5 grid grid-cols-1 gap-4 sm:grid-cols-[repeat(var(--pv-cols),minmax(0,1fr))]"
+      style={{ "--pv-cols": cols } as CSSProperties}
     >
       {children}
     </div>

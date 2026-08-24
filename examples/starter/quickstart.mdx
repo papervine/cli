@@ -1,75 +1,13 @@
 ---
-title: Quickstart
-description: Get a docs site running in about a minute.
+title: "Quickstart"
 ---
 
-## Install
-
-<CodeGroup>
-
-```bash npx
-npx papervine@latest dev
-```
-
-```bash global
-npm i -g papervine
-papervine dev
-```
-
-</CodeGroup>
-
-Requires Node 20.9 or newer.
-
-## Point it at your docs
-
-Run it inside any folder that has a `docs.json` at its root. Docs usually live in a
-subdirectory, so pass the path:
+<Steps>
+  <Step title="Edit docs.json">Set your site name, colors, and navigation.</Step>
+  <Step title="Write pages">Add MDX files and list them in the nav.</Step>
+  <Step title="Connect the repo">Point a Papervine site at this repo and sync.</Step>
+</Steps>
 
 ```bash
-papervine dev ./docs
+papervine dev .
 ```
-
-<Tip>
-  Coming from Mintlify? There's nothing to migrate — the same `docs.json` and the same MDX
-  render as-is. Clone your existing docs repo and point the CLI at it.
-</Tip>
-
-## Frontmatter
-
-Every page takes a `title` and a `description`:
-
-```mdx
----
-title: Your page
-description: One line that shows under the heading and in search results.
----
-
-Your content here.
-```
-
-## Navigation
-
-Pages appear in the sidebar because `docs.json` lists them. A page that isn't in the
-navigation still renders at its URL — it just isn't linked:
-
-```json
-{
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Documentation",
-        "groups": [{ "group": "Get started", "pages": ["index", "quickstart"] }]
-      }
-    ]
-  }
-}
-```
-
-Group names are labels; the strings in `pages` are file paths without the extension, so
-`"guides/setup"` is `guides/setup.mdx`.
-
-## Next steps
-
-<Card title="Components" href="/components">
-  The full set of components you can use in a page.
-</Card>

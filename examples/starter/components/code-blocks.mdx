@@ -1,0 +1,49 @@
+---
+title: "Code blocks"
+description: "Syntax highlighting, titles and a copy button on every fence."
+---
+
+A fenced block is highlighted at build time with dual light/dark themes, so it follows the page's appearance with no client-side work. Every block gets a copy button on hover.
+
+```ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+
+````mdx
+```ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+````
+
+## Titles
+
+Text after the language becomes the block's title. Both the bare form and an explicit
+`title="…"` work:
+
+```ts lib/greet.ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+
+````mdx
+```ts lib/greet.ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+````
+
+<Note>
+  A title is also what `<CodeGroup>` uses for its tab labels. Without one, a group falls back
+  to the language name — so three untitled `bash` blocks all read "shellscript".
+</Note>
+
+## Copying
+
+The copy button appears on hover, and is always visible on touch devices where there is no
+hover. It copies the block's exact source, without the highlighting.

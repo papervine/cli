@@ -1,0 +1,44 @@
+---
+title: "Tabs"
+description: "Tabbed content for per-platform or per-language variants."
+---
+
+Each `<Tab>` takes a `title`, which becomes its label.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    brew install node
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    sudo apt install nodejs
+    ```
+  </Tab>
+</Tabs>
+
+````mdx
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    brew install node
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    sudo apt install nodejs
+    ```
+  </Tab>
+</Tabs>
+````
+
+<Tip>
+  For code in several package managers, `<CodeGroup>` is less markup than tabs of fences.
+</Tip>
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | `string` | — | On `<Tab>`: the tab label. |

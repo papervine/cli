@@ -1,0 +1,145 @@
+---
+title: Extended Components
+description: Every component added for docs.json component parity, in one page.
+---
+
+Each marker below is asserted by `tests/smoke.mjs`. The point is not that these look right —
+that's a browser check — but that every one of them **resolves to a real component** instead
+of silently degrading to its children, which is what an unregistered name does.
+
+## Callouts
+
+<Danger>DANGER_MARKER</Danger>
+
+<Callout icon="rocket" color="#7C3AED">CUSTOM_CALLOUT_MARKER</Callout>
+
+## Banner
+
+`banner` in `docs.json` renders site-wide above the navbar (asserted on every fixture page,
+not just this one). The same component is also available as a tag inside a page:
+
+<Banner type="critical" dismissible>INLINE_BANNER_MARKER</Banner>
+
+## Badge
+
+Inline <Badge color="green" size="md">BADGE_MARKER</Badge> in a sentence.
+
+<Badge icon="star" color="blue" size="lg" shape="pill" stroke>BADGE_PILL_MARKER</Badge>
+
+## Icon
+
+<Icon icon="flag" size={24} /> a known Lucide name.
+
+<Icon icon="definitely-not-an-icon-name" /> an unknown name renders nothing and must not break the line: ICON_FALLBACK_MARKER
+
+<Icon src="/img/hero.png" size={20} /> a `src` renders an image: ICON_SRC_MARKER
+
+## Tooltip
+
+<Tooltip headline="API" tip="TOOLTIP_TIP_MARKER" cta="Read more" href="/guide">TOOLTIP_MARKER</Tooltip>
+
+## Tile
+
+<Columns cols={2}>
+  <Tile href="/guide" title="TILE_TITLE_MARKER" description="TILE_DESC_MARKER">
+    <img src="/img/wide.png" alt="Preview" />
+  </Tile>
+  <Tile title="TILE_NOLINK_MARKER" description="No href, so not a link" />
+</Columns>
+
+## Tree
+
+<Tree>
+  <Tree.Folder name="TREE_FOLDER_MARKER" defaultOpen>
+    <Tree.File name="TREE_FILE_MARKER" />
+    <Tree.File name="highlighted.ts" highlight />
+  </Tree.Folder>
+  <Tree.File name="TREE_ROOT_FILE_MARKER" />
+</Tree>
+
+The `FileTree` alias must resolve to the same component:
+
+<FileTree>
+  <Tree.File name="FILETREE_ALIAS_MARKER" />
+</FileTree>
+
+The Markdown list form is the *other* documented input, converted at the mdast stage. A
+trailing slash marks a folder, nesting also marks one, and everything else is a file:
+
+<FileTree>
+
+- LIST_FOLDER_MARKER/
+  - LIST_NESTED_FILE_MARKER
+  - LIST_IMPLICIT_FOLDER_MARKER
+    - LIST_DEEP_FILE_MARKER
+- LIST_ROOT_FILE_MARKER
+
+</FileTree>
+
+## Color
+
+<Color variant="compact">
+  <Color.Item name="COLOR_NAME_MARKER" value="#3B82F6" />
+  <Color.Item name="themed" value={{ light: "#ffffff", dark: "#000000" }} />
+</Color>
+
+<Color variant="table">
+  <Color.Row title="COLOR_ROW_MARKER">
+    <Color.Item name="red-500" value="rgb(239 68 68)" />
+  </Color.Row>
+</Color>
+
+## Update
+
+<Update label="2026-08-23" description="UPDATE_DESC_MARKER" tags={["UPDATE_TAG_MARKER"]}>
+  UPDATE_BODY_MARKER
+</Update>
+
+## Visibility
+
+<Visibility for="humans">VISIBILITY_HUMAN_MARKER</Visibility>
+
+<Visibility for="agents">VISIBILITY_AGENT_MARKER</Visibility>
+
+<Visibility for="typo-not-a-real-audience">VISIBILITY_UNKNOWN_MARKER</Visibility>
+
+## Prompt
+
+<Prompt description="PROMPT_DESC_MARKER" icon="paperclip" actions={["copy", "cursor"]}>
+PROMPT_BODY_MARKER
+</Prompt>
+
+## View
+
+<View title="VIEW_JS_MARKER" icon="code">
+  JavaScript content.
+</View>
+
+<View title="VIEW_PY_MARKER" icon="terminal">
+  Python content.
+</View>
+
+## Panel and examples
+
+<Panel>
+  <Info>PANEL_MARKER</Info>
+</Panel>
+
+<RequestExample>
+```bash Request
+curl REQUEST_EXAMPLE_MARKER
+```
+</RequestExample>
+
+<ResponseExample>
+```json Response
+{ "marker": "RESPONSE_EXAMPLE_MARKER" }
+```
+</ResponseExample>
+
+## GitHub
+
+<GitHub.Repo repo="papervine/cli" />
+
+The card renders its slug server-side (GITHUB_SLUG_MARKER is the assertion target below);
+star and fork counts arrive client-side, so they are deliberately not asserted.

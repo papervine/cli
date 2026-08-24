@@ -13,7 +13,7 @@ export const DEFAULT_PORT = 3000;
  *
  * @param {string[]} argv - args after the `dev` subcommand
  * @param {string} cwd - resolved against, so the result is always absolute
- * @returns {{help: boolean, port: number, dir: string}}
+ * @returns {{help: boolean, port: number, dir: string, yes: boolean, portExplicit: boolean}}
  * @throws {Error} on an unknown flag or an unusable --port
  */
 export function parseDevArgs(argv, cwd) {
@@ -21,12 +21,17 @@ export function parseDevArgs(argv, cwd) {
     args: argv,
     options: {
       port: { type: "string", short: "p" },
+      // Scaffold without asking when there are no docs. Declared here rather than sniffed out
+      // of argv, because `parseArgs` rejects an undeclared flag before any such check could run.
+      yes: { type: "boolean", short: "y" },
       help: { type: "boolean", short: "h" },
     },
     allowPositionals: true,
   });
 
-  if (values.help) return { help: true, port: DEFAULT_PORT, dir: cwd };
+  if (values.help) {
+    return { help: true, port: DEFAULT_PORT, dir: cwd, yes: false, portExplicit: false };
+  }
 
   let port = DEFAULT_PORT;
   if (values.port !== undefined) {
@@ -47,7 +52,71 @@ export function parseDevArgs(argv, cwd) {
     );
   }
 
-  return { help: false, port, dir: path.resolve(cwd, positionals[0] ?? ".") };
+  return {
+    help: false,
+    port,
+    dir: path.resolve(cwd, positionals[0] ?? "."),
+    yes: Boolean(values.yes),
+    // An explicit `--port` is a request, not a suggestion: the caller told us where to serve,
+    // so a busy port is an error rather than something to quietly move away from.
+    portExplicit: values.port !== undefined,
+  };
+}
+
+/**
+ * Parse `papervine new` arguments.
+ *
+ * @param {string[]} argv - args after the `new` subcommand
+ * @param {string} cwd
+ * @returns {{help: boolean, force: boolean, dir: string}}
+ * @throws {Error} on an unknown flag or more than one directory
+ */
+export function parseNewArgs(argv, cwd) {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      force: { type: "boolean", short: "f" },
+      help: { type: "boolean", short: "h" },
+    },
+    allowPositionals: true,
+  });
+
+  if (values.help) return { help: true, force: false, dir: cwd };
+  if (positionals.length > 1) {
+    throw new Error(
+      `expected at most one directory, got ${positionals.length}: ${positionals.join(", ")}`,
+    );
+  }
+  return { help: false, force: Boolean(values.force), dir: path.resolve(cwd, positionals[0] ?? ".") };
+}
+
+/**
+ * Decide whether a directory can be scaffolded into. Pure: takes probe results, not paths.
+ *
+ * Scaffolding writes files, so the default is to refuse anything that isn't empty — overwriting
+ * someone's work because they mistyped a path is unrecoverable, and `--force` is a cheap way to
+ * say you meant it. A directory that doesn't exist yet is the normal case and fine; it gets
+ * created.
+ *
+ * "Empty" ignores dotfiles, because a freshly `git init`ed or editor-opened directory is empty
+ * in every sense the user cares about, and refusing there would be pedantic.
+ *
+ * @param {{dir: string, exists: boolean, isDirectory: boolean, entries: string[], force: boolean}} probe
+ * @returns {string | null} an error message, or null when the directory is usable
+ */
+export function validateNewTarget({ dir, exists, isDirectory, entries, force }) {
+  if (exists && !isDirectory) return `not a directory: ${dir}`;
+  if (!exists) return null;
+  if (force) return null;
+  const visible = entries.filter((name) => !name.startsWith("."));
+  if (visible.length) {
+    return (
+      `${dir} is not empty (${visible.slice(0, 3).join(", ")}${visible.length > 3 ? ", …" : ""})\n` +
+      `  Scaffolding would write over what's there. Pass a new directory, or --force if you\n` +
+      `  meant this one.`
+    );
+  }
+  return null;
 }
 
 /**

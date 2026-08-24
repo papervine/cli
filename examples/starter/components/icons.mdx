@@ -1,0 +1,36 @@
+---
+title: "Icons"
+description: "Inline icons from Lucide, or any file of your own."
+---
+
+Icons resolve against [Lucide](https://lucide.dev) by name. A name Lucide doesn't have renders nothing rather than breaking the line.
+
+Inline: <Icon icon="flag" size={20} /> <Icon icon="rocket" size={20} /> <Icon icon="database" size={20} color="#7C3AED" />
+
+From a file: <Icon src="/favicon.svg" size={20} />
+
+```mdx
+Inline: <Icon icon="flag" size={20} /> <Icon icon="rocket" size={20} /> <Icon icon="database" size={20} color="#7C3AED" />
+
+From a file: <Icon src="/favicon.svg" size={20} />
+```
+
+<Note>
+  Font Awesome and Tabler names aren't resolved — carrying three icon libraries would be a
+  poor trade for a package whose point is being light. `src` is the escape hatch.
+</Note>
+
+<Warning>
+  Pick an asset that reads on both light and dark backgrounds. A single-colour logo that works
+  on one will disappear on the other — `favicon.svg` is used above because it brings its own
+  background.
+</Warning>
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `icon` | `string` | — | A Lucide icon name. |
+| `src` | `string` | — | A path or URL to an image, used instead of `icon`. |
+| `size` | `number` | — | Pixel size. |
+| `color` | `string` | — | Any CSS colour. |

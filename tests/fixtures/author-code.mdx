@@ -1,0 +1,22 @@
+---
+title: Author code
+---
+
+AUTHOR_PAGE_MARKER — this page contains author logic, so it must be evaluated in the browser
+rather than on the server (SPEC §10.6).
+
+The expression below concatenates two strings. That matters for the assertion: the *result*
+never appears as a literal anywhere in the source or the compiled module, so finding it in the
+server's HTML would prove the server evaluated author code.
+
+Concatenated: {"SERVER" + "_EVALUATED"}
+
+A JSX **spread** attribute is a different mdast node from an attribute value
+(`mdxJsxExpressionAttribute`), and the first version of the classifier checked only the latter —
+so a spread sailed through and evaluated on the server. Same concatenation trick as above.
+
+<Card {...{ title: "SPREAD" + "_EVALUATED" }} />
+
+export const Greeting = () => <b>AUTHOR_COMPONENT_OUTPUT</b>
+
+<Greeting />

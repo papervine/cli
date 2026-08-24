@@ -7,6 +7,9 @@ than crash the page.
 
 <Mystery>UNKNOWN_CHILD_MARKER</Mystery>
 
-<Tree>
-  <Tree.File>MEMBER_EXPR_MARKER</Tree.File>
-</Tree>
+This used to use `<Tree.File>` as the member-expression example — until Tree was actually
+implemented, at which point this fixture started asserting the fallback against a real
+component and failed. The example has to be a name we genuinely don't ship, so it's a
+deliberately invented one:
+
+<Widget.Panel>MEMBER_EXPR_MARKER</Widget.Panel>

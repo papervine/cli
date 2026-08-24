@@ -14,7 +14,7 @@ const ALLOW_ALL: PageAccess = () => true;
 // Threaded through the nav recursion. `includeHidden` keeps `hidden` pages/groups in the tree
 // (marked `hidden: true`) instead of dropping them — the editor passes it so hiding a page just
 // dims it rather than making it vanish; the published site leaves it false.
-type NavCtx = { canAccess: PageAccess; includeHidden: boolean };
+type NavCtx = { canAccess: PageAccess; includeHidden: boolean; includeEmpty: boolean };
 
 /** Serializable nav tree handed to the client Sidebar. `method` is set only for OpenAPI
  *  operation leaves, so the sidebar can render a colored HTTP-method badge beside them. */
@@ -191,7 +191,11 @@ async function collectItem(item: unknown, ctx: NavCtx): Promise<(NavLeaf | NavNo
       // is dropped here, so its parent sees no child and is dropped in turn. This is also how
       // a fully-gated *tab* disappears (buildNav drops a tab whose nodes are all gone) —
       // access stays single-source-of-truth at the page, and containers derive from it.
-      if (children.length === 0) return [];
+      // ...except in the EDITOR (includeEmpty), where the tree is the authoring surface for
+      // the structure itself: a group you just created is legitimately empty until you put a
+      // page in it, and pruning it means you can never see or fill it. Readers still never
+      // see a bare label.
+      if (children.length === 0 && !ctx.includeEmpty) return [];
       const node: NavNode = { group: label, items: children };
       if (typeof div.icon === "string") node.icon = div.icon;
       if (typeof div.tag === "string") node.tag = div.tag;
@@ -260,9 +264,13 @@ export async function buildNav(
   config: DocsConfig,
   base = "",
   canAccess: PageAccess = ALLOW_ALL,
-  opts: { includeHidden?: boolean } = {},
+  opts: { includeHidden?: boolean; includeEmpty?: boolean } = {},
 ): Promise<NavSection[]> {
-  const ctx: NavCtx = { canAccess, includeHidden: opts.includeHidden ?? false };
+  const ctx: NavCtx = {
+    canAccess,
+    includeHidden: opts.includeHidden ?? false,
+    includeEmpty: opts.includeEmpty ?? false,
+  };
   let nav = config.navigation as Division;
 
   // Descend through localization/version wrappers to the default (first) entry.
@@ -291,11 +299,11 @@ export async function buildNav(
     );
     // Drop a tab with no reachable pages — every page in it was filtered out (reader-auth
     // groups / hidden). A non-member never sees a teasing, empty "Internal" tab.
-    sections.push(...tabSections.filter((s) => s.hrefs.length > 0));
+    sections.push(...tabSections.filter((s) => s.hrefs.length > 0 || ctx.includeEmpty));
   } else {
     const nodes = await collectChildren(nav, ctx);
     const hrefs = collectHrefs(nodes);
-    if (hrefs.length > 0) sections.push({ hrefs, nodes });
+    if (hrefs.length > 0 || (ctx.includeEmpty && nodes.length > 0)) sections.push({ hrefs, nodes });
   }
 
   return base ? prefixSections(sections, base) : sections;

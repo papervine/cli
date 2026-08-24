@@ -50,6 +50,19 @@ export const docsConfigSchema = z
       .optional()
       .catch(undefined),
     footer: z.object({}).passthrough().optional().catch(undefined),
+    // Site-wide announcement bar, rendered above the navbar. `content` is the only field
+    // that matters — without it there's nothing to show, so a malformed banner resolves to
+    // undefined and the site renders as though it were absent, per the warn-don't-throw rule.
+    banner: z
+      .object({
+        content: z.string(),
+        dismissible: z.boolean().optional().catch(undefined),
+        type: z.enum(["info", "warning", "critical"]).optional().catch(undefined),
+        color: stringOrLightDark.catch(undefined),
+      })
+      .passthrough()
+      .optional()
+      .catch(undefined),
   })
   .passthrough();
 

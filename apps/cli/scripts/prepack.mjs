@@ -119,10 +119,45 @@ for (const rel of PRUNE) {
   rmSync(path.join(OUT, rel), { recursive: true, force: true });
 }
 
+// Drop the traced `sharp` and its libvips binaries, which are the ONE platform-specific thing
+// in an otherwise pure-JavaScript package. The tracer copies the binaries for whatever machine
+// ran the build, so a Mac-built tarball silently served *unoptimized* images on Linux —
+// `/_next/image?w=64` returned a 220,526-byte PNG where the build platform returned 3,124 bytes,
+// with no warning, because Next falls back to serving the original when sharp can't load. CI
+// builds on ubuntu, so whichever machine published decided which platform worked.
+//
+// `sharp` is declared in the package's `optionalDependencies` instead, so npm resolves the right
+// binary per platform through sharp's own mechanism. Pruning here is what stops the wrong-platform
+// copy from shadowing it: `server/node_modules` is searched before the consumer's own tree.
+//
+// This is the exception to the "leave node_modules exactly as traced" rule above, and it is safe
+// for the opposite reason `typescript` was not: nothing *imports* sharp: Next probes for it at
+// runtime and degrades when it is absent.
+const SHARP_PRUNE = ["node_modules/sharp", "node_modules/@img"];
+for (const rel of SHARP_PRUNE) {
+  rmSync(path.join(OUT, rel), { recursive: true, force: true });
+  // Next nests its own copy under `node_modules/next/node_modules` — the tracer put the real
+  // binaries there, so pruning only the top level would leave the platform lock in place.
+  rmSync(path.join(OUT, "node_modules", "next", rel), { recursive: true, force: true });
+}
+
 const publicDir = path.join(APP_DIR, "public");
 if (existsSync(publicDir)) {
   cpSync(publicDir, path.join(OUT, "public"), COPY);
 }
+
+// The scaffold template for `papervine new`, copied from the one starter site this repo keeps
+// (examples/starter — also what publishes to papervine/starter and what db:seed builds from).
+// Bundling it rather than fetching it at scaffold time costs 68K against a 24MB tarball and
+// buys two things: `new` works offline, and the template can never drift from the CLI version
+// that scaffolded it.
+const TEMPLATE_SRC = path.join(APP_DIR, "..", "..", "examples", "starter");
+const TEMPLATE_OUT = path.join(APP_DIR, "template");
+rmSync(TEMPLATE_OUT, { recursive: true, force: true });
+if (!existsSync(TEMPLATE_SRC)) {
+  fail(`no scaffold template at ${TEMPLATE_SRC} — \`papervine new\` would ship broken.`);
+}
+cpSync(TEMPLATE_SRC, TEMPLATE_OUT, COPY);
 
 if (!existsSync(path.join(OUT, "server.js"))) {
   fail(`normalization failed — no server.js in ${OUT}`);
@@ -144,6 +179,25 @@ if (links.length) {
   fail(
     `${links.length} symlink(s) survived into ${path.relative(APP_DIR, OUT)}/ — ` +
       `npm pack would drop these:\n  ${links.slice(0, 10).join("\n  ")}`,
+  );
+}
+
+// Assert the package stays platform-agnostic. A compiled binary in the tree means the tarball
+// only works on the machine that built it — the failure the sharp prune above exists to prevent,
+// and one that no test catches unless it runs on a *different* platform than the build.
+const NATIVE_RE = /\.(node|dylib|so(\.\d+)*|dll)$/i;
+const natives = [];
+(function findNatives(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) findNatives(full);
+    else if (NATIVE_RE.test(entry.name)) natives.push(path.relative(OUT, full));
+  }
+})(OUT);
+if (natives.length) {
+  fail(
+    `${natives.length} native binary/binaries survived into ${path.relative(APP_DIR, OUT)}/ — ` +
+      `the tarball would only work on this platform:\n  ${natives.slice(0, 10).join("\n  ")}`,
   );
 }
 

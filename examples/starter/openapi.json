@@ -1,0 +1,81 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Widgets API",
+    "version": "1.0.0",
+    "description": "A tiny example API for the Papervine starter — exercises the auto-generated API reference (params, request/response schemas, enums, auth)."
+  },
+  "servers": [{ "url": "https://httpbin.org/anything", "description": "Live echo server — the interactive \"Try it\" panel sends real requests here, and it mirrors your method, query, headers, and body back as JSON so you can see the round-trip." }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/widgets": {
+      "get": {
+        "operationId": "listWidgets",
+        "summary": "List widgets",
+        "description": "Return a paginated list of widgets.",
+        "parameters": [
+          { "name": "limit", "in": "query", "description": "Max items to return (1–100).", "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 } },
+          { "name": "color", "in": "query", "description": "Filter by color.", "schema": { "type": "string", "enum": ["red", "green", "blue"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of widgets.",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Widget" } } } }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWidget",
+        "summary": "Create a widget",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NewWidget" } } }
+        },
+        "responses": {
+          "201": { "description": "The created widget.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Widget" } } } },
+          "422": { "description": "Validation error." }
+        }
+      }
+    },
+    "/widgets/{id}": {
+      "get": {
+        "operationId": "getWidget",
+        "summary": "Get a widget",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The widget id.", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "The widget.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Widget" } } } },
+          "404": { "description": "No widget with that id." }
+        }
+      },
+      "delete": {
+        "operationId": "deleteWidget",
+        "summary": "Delete a widget",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Deleted." } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Bearer token in the Authorization header." } },
+    "schemas": {
+      "Widget": {
+        "type": "object",
+        "required": ["id", "name", "color"],
+        "properties": {
+          "id": { "type": "string", "example": "wid_8a3f", "description": "Unique widget id." },
+          "name": { "type": "string", "example": "Sprocket", "description": "Human-friendly name." },
+          "color": { "type": "string", "enum": ["red", "green", "blue"], "example": "blue" },
+          "createdAt": { "type": "string", "format": "date-time", "example": "2026-01-15T09:30:00Z" }
+        }
+      },
+      "NewWidget": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "description": "Human-friendly name." },
+          "color": { "type": "string", "enum": ["red", "green", "blue"], "default": "blue" }
+        }
+      }
+    }
+  }
+}

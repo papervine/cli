@@ -1,11 +1,19 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Starter",
+  "name": "Papervine Starter",
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
   "colors": {
     "primary": "#7C3AED",
     "light": "#A78BFA",
     "dark": "#5B21B6"
+  },
+  "appearance": {
+    "default": "light"
   },
   "navigation": {
     "tabs": [
@@ -13,12 +21,92 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Get started",
-            "pages": ["index", "quickstart"]
+            "group": "Get Started",
+            "pages": [
+              "index",
+              "quickstart"
+            ]
           },
           {
-            "group": "Writing",
-            "pages": ["components"]
+            "group": "Guides",
+            "pages": [
+              "guides/public-page"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Components",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "components"
+            ]
+          },
+          {
+            "group": "All components",
+            "pages": [
+              "components/accordions",
+              "components/badges",
+              "components/banners",
+              "components/callouts",
+              "components/cards",
+              "components/code-blocks",
+              "components/code-groups",
+              "components/colors",
+              "components/columns",
+              "components/examples",
+              "components/expandables",
+              "components/fields",
+              "components/frames",
+              "components/github",
+              "components/icons",
+              "components/mermaid",
+              "components/panels",
+              "components/prompts",
+              "components/steps",
+              "components/tabs",
+              "components/tiles",
+              "components/tooltips",
+              "components/trees",
+              "components/updates",
+              "components/views",
+              "components/visibility"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Internal",
+        "groups": [
+          {
+            "group": "Team",
+            "pages": [
+              "internal/overview",
+              "internal/settings"
+            ]
+          },
+          {
+            "group": "Beta",
+            "pages": [
+              "internal/beta"
+            ]
+          },
+          {
+            "group": "Shared",
+            "pages": [
+              "internal/staff"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Widgets",
+            "openapi": "openapi.json"
           }
         ]
       }
