@@ -59,6 +59,17 @@ function titleFromSlug(slug: string): string {
 
 /** Resolve a page slug to a sidebar leaf, honoring sidebarTitle, hidden, and reader access.
  *  Null = omit (hidden, or the reader can't access it). */
+/**
+ * The URL a page slug is actually served at.
+ *
+ * The index page is the one place where the slug and the route differ — see the note in
+ * `resolveLeaf`. Everything that links to a page must go through here, or it produces an href
+ * that looks right and never resolves.
+ */
+function routeForSlug(slug: string): string {
+  return slug === "index" || slug === "" ? "/" : "/" + slug;
+}
+
 async function resolveLeaf(slug: string, ctx: NavCtx): Promise<NavLeaf | null> {
   const page = await loadPage(slug);
   if (page?.frontmatter.hidden && !ctx.includeHidden) return null;
@@ -68,7 +79,15 @@ async function resolveLeaf(slug: string, ctx: NavCtx): Promise<NavLeaf | null> {
     title: fm?.sidebarTitle ?? fm?.title ?? titleFromSlug(slug),
     // An external `url` becomes the href directly (withBase leaves absolute URLs alone); else
     // the internal page route.
-    href: fm?.url || "/" + slug,
+    //
+    // `index` is spelled two ways and only one of them is a route: `docs.json` writes the page
+    // as `"index"`, but it is *served* at `/`. Emitting `/index` here produced a link Next could
+    // prefetch but never satisfy — the response is the tree for `/`, so the router never records
+    // `/index` as fetched and the Link asks again, forever. Measured on the starter: **5,257
+    // requests to `/index?_rsc` in 20 seconds** from one page load; removing the entry from the
+    // nav dropped it to 23. Invisible in dev (no prefetching) and unlogged in production (the
+    // prebuilt server logs no requests), so it took a counting proxy to see at all.
+    href: fm?.url || routeForSlug(slug),
   };
   if (fm?.url) leaf.external = true;
   if (fm?.icon) leaf.icon = fm.icon;

@@ -44,6 +44,9 @@ const HOOKS = {
  */
 const HOOK_PRELUDE = `const {${Object.keys(HOOKS).join(",")}} = arguments[0]._pvHooks;\n`;
 
+/** A stable empty default, so omitting the prop does not allocate a new object per render. */
+const NO_DIMENSIONS: AssetDimensions = {};
+
 type ClientMdxProps = {
   compiledSource: string;
   /** Must match the flag the source was compiled with, or React 19 rejects the elements. */
@@ -58,7 +61,7 @@ export function ClientMdx({
   development,
   linkBase = "",
   assetBase = "",
-  assetDimensions = {},
+  assetDimensions = NO_DIMENSIONS,
 }: ClientMdxProps) {
   const [Content, setContent] = useState<React.ComponentType<Record<string, unknown>> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +69,16 @@ export function ClientMdx({
   // the source it belongs to is no longer the one being rendered.
   const token = useRef(0);
 
+  // `assetDimensions` is an object, and a default parameter would allocate a fresh one on every
+  // render — a new identity each time, so the memo below would recompute, `components` would
+  // change, and the effect that depends on it would re-run and `setContent` again. That is a
+  // render loop waiting for a caller who passes an inline `{}`. Keyed on the *content* instead,
+  // which is stable across renders regardless of how the prop is constructed.
+  const dimensionsKey = JSON.stringify(assetDimensions);
   const components = useMemo(
     () => applyTenantUrls(componentsForCompiled(compiledSource), linkBase, assetBase, assetDimensions),
-    [compiledSource, linkBase, assetBase, assetDimensions],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on dimensionsKey, see above
+    [compiledSource, linkBase, assetBase, dimensionsKey],
   );
 
   useEffect(() => {
