@@ -1,0 +1,66 @@
+---
+title: "Trees"
+description: "File and directory listings."
+---
+
+Two ways to write the same thing — explicit components, or a Markdown list, which is usually less typing.
+
+<Tree>
+  <Tree.Folder name="app" defaultOpen>
+    <Tree.File name="layout.tsx" />
+    <Tree.File name="page.tsx" highlight />
+  </Tree.Folder>
+  <Tree.Folder name="lib">
+    <Tree.File name="utils.ts" />
+  </Tree.Folder>
+  <Tree.File name="docs.json" />
+</Tree>
+
+```mdx
+<Tree>
+  <Tree.Folder name="app" defaultOpen>
+    <Tree.File name="layout.tsx" />
+    <Tree.File name="page.tsx" highlight />
+  </Tree.Folder>
+  <Tree.Folder name="lib">
+    <Tree.File name="utils.ts" />
+  </Tree.Folder>
+  <Tree.File name="docs.json" />
+</Tree>
+```
+
+## From a Markdown list
+
+A trailing slash marks a folder, and so does having nested items. `<FileTree>` is an alias
+for `<Tree>`.
+
+<FileTree>
+
+- docs/
+  - index.mdx
+  - guides/
+    - components.mdx
+- docs.json
+
+</FileTree>
+
+```mdx
+<FileTree>
+
+- docs/
+  - index.mdx
+  - guides/
+    - components.mdx
+- docs.json
+
+</FileTree>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | required | On `<Tree.Folder>` / `<Tree.File>`: the entry name. |
+| `defaultOpen` | `boolean` | `false` | On `<Tree.Folder>`: start expanded. |
+| `openable` | `boolean` | `true` | On `<Tree.Folder>`: allow collapsing. |
+| `highlight` | `boolean` | `false` | Emphasise the entry. |

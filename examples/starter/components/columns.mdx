@@ -1,0 +1,26 @@
+---
+title: "Columns"
+description: "A responsive grid for any children."
+---
+
+`<Columns>` lays out whatever you put in it — cards, tiles, or plain prose — and collapses to one column on narrow screens. It is the current name for the card grid; `<CardGroup>` is the legacy alias for the same component.
+
+<Columns cols={3}>
+  <Card title="One" icon="circle-dot">First column.</Card>
+  <Card title="Two" icon="circle-dot">Second column.</Card>
+  <Card title="Three" icon="circle-dot">Third column.</Card>
+</Columns>
+
+```mdx
+<Columns cols={3}>
+  <Card title="One" icon="circle-dot">First column.</Card>
+  <Card title="Two" icon="circle-dot">Second column.</Card>
+  <Card title="Three" icon="circle-dot">Third column.</Card>
+</Columns>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cols` | `number` | `2` | Number of columns at full width. |

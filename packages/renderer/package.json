@@ -1,7 +1,7 @@
 {
   "name": "@papervine/renderer",
   "version": "0.1.0",
-  "description": "Papervine renderer-core — MDX + docs.json rendering, shared by the CLI and the hosted app. Internal: not published to npm.",
+  "description": "Papervine renderer-core \u2014 MDX + docs.json rendering, shared by the CLI and the hosted app. Internal: not published to npm.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -20,10 +20,15 @@
     "README.md"
   ],
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.81",
+    "@ai-sdk/google": "^3.0.95",
+    "@ai-sdk/openai": "^3.0.86",
+    "@ai-sdk/react": "^3.0.199",
     "@mdx-js/mdx": "^3.1.1",
     "@mintlify/mdx": "^4.0.0",
     "@orama/orama": "^3.1.18",
     "@scalar/openapi-parser": "^0.28.6",
+    "ai": "^6.0.197",
     "clsx": "2.1.1",
     "gray-matter": "4.0.3",
     "image-size": "^2.0.0",
@@ -34,6 +39,7 @@
     "remark-gfm": "4.0.0",
     "server-only": "^0.0.1",
     "shiki": "1.29.2",
+    "streamdown": "^2.5.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {

@@ -1,0 +1,28 @@
+---
+title: "Colors"
+description: "Swatch lists for documenting a palette."
+---
+
+`<Color.Item>` takes a single value, or a `{ light, dark }` pair that follows the page appearance.
+
+<Color variant="compact">
+  <Color.Item name="primary" value="#7C3AED" />
+  <Color.Item name="light" value="#A78BFA" />
+  <Color.Item name="themed" value={{ light: "#18181B", dark: "#FAFAFA" }} />
+</Color>
+
+```mdx
+<Color variant="compact">
+  <Color.Item name="primary" value="#7C3AED" />
+  <Color.Item name="light" value="#A78BFA" />
+  <Color.Item name="themed" value={{ light: "#18181B", dark: "#FAFAFA" }} />
+</Color>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `variant` | `"compact" \| "table"` | `table` | Layout of the swatch list. |
+| `name` | `string` | — | On `<Color.Item>`: the swatch label. |
+| `value` | `string \| { light, dark }` | required | On `<Color.Item>`: the colour. |

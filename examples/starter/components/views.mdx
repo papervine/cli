@@ -1,0 +1,39 @@
+---
+title: "Views"
+description: "Variant content as labelled sections."
+---
+
+Each `<View>` renders as its own labelled section, so every variant stays readable and linkable.
+
+<View title="JavaScript" icon="code">
+  ```js
+  console.log("Hello");
+  ```
+</View>
+
+<View title="Python" icon="terminal">
+  ```python
+  print("Hello")
+  ```
+</View>
+
+````mdx
+<View title="JavaScript" icon="code">
+  ```js
+  console.log("Hello");
+  ```
+</View>
+
+<View title="Python" icon="terminal">
+  ```python
+  print("Hello")
+  ```
+</View>
+````
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Section label. |
+| `icon` | `string` | — | A Lucide icon name. |

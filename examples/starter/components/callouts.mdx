@@ -1,0 +1,36 @@
+---
+title: "Callouts"
+description: "Six severity levels, plus a bring-your-own-icon variant."
+---
+
+Callouts break the reader out of the flow of prose. Reach for the mildest one that fits — a page where everything is a warning has no warnings.
+
+<Note>Useful context that isn't essential.</Note>
+<Tip>A recommendation or shortcut.</Tip>
+<Info>Neutral background information.</Info>
+<Warning>Something that could bite.</Warning>
+<Check>A confirmation or completed step.</Check>
+<Danger>A destructive or irreversible action.</Danger>
+
+```mdx
+<Note>Useful context that isn't essential.</Note>
+<Tip>A recommendation or shortcut.</Tip>
+<Info>Neutral background information.</Info>
+<Warning>Something that could bite.</Warning>
+<Check>A confirmation or completed step.</Check>
+<Danger>A destructive or irreversible action.</Danger>
+```
+
+## Custom icon and colour
+
+`<Callout>` takes any Lucide icon name and any CSS colour:
+
+<Callout icon="rocket" color="#7C3AED">
+  A custom callout, with any Lucide icon name and any CSS color.
+</Callout>
+
+```mdx
+<Callout icon="rocket" color="#7C3AED">
+  A custom callout, with any Lucide icon name and any CSS color.
+</Callout>
+```

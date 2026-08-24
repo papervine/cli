@@ -37,6 +37,11 @@ const nextConfig = {
   // external so it's required at runtime (same constraint as the web app). Being
   // external means these are `require`d rather than bundled, so file tracing is
   // what puts them in the standalone output.
+  // The AI SDKs are deliberately NOT here: they bundle fine (they are ordinary JavaScript,
+  // unlike the MDX stack above) and bundling is what makes them tree-shakeable and leaves no
+  // second copy to reconcile. Externalising them instead produced a content-hashed alias
+  // (`@ai-sdk/anthropic-<hash>`) that the compiled server requires by name — which cannot be
+  // pruned, so the tarball carried the whole SDK twice over.
   serverExternalPackages: ["@mintlify/mdx", "next-mdx-remote-client"],
 };
 

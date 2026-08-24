@@ -24,6 +24,7 @@
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -146,6 +147,11 @@ async function run() {
   //    `apps/cli/src/instrumentation.ts`; guarded here, because the next conventional
   //    file Next decides to resolve from the root would leak the same way.
   const listing = sh("tar", ["tzf", path.join(SANDBOX, cliTarball)]).split("\n");
+  // Note `ai-sdk` stays on this list even though the CLI now *ships* the assistant: the SDKs are
+  // declared `dependencies` and pruned from the packed tree, so npm delivers them and the tarball
+  // must not carry a second copy. "Absent from the tarball" and "absent from the product" are
+  // different claims now, and only the first one is what this asserts — the counterpart, that
+  // they resolve after a real install, is checked further down.
   const controlPlane = listing.filter((f) =>
     /better-auth|drizzle|aws-sdk|pusher|modelcontextprotocol|trigger\.dev|@sentry|@tiptap|ai-sdk|resend|\/stripe\//i.test(
       f,
@@ -154,6 +160,16 @@ async function run() {
   if (controlPlane.length) {
     failures.push(
       `control-plane code in the tarball (SPEC §10.6 boundary): ${controlPlane.slice(0, 5).join(", ")}`,
+    );
+  }
+  // A compiled binary in the tarball means it only works on the machine that built it. The
+  // vendored `sharp` did exactly that: a Mac-built package silently served 220,526-byte images on
+  // Linux where the build platform served 3,124, because Next falls back to the original when
+  // sharp cannot load. It is an optionalDependency now, resolved per platform by npm.
+  const natives = listing.filter((f) => /\.(node|dylib|so(\.\d+)*|dll)$/i.test(f));
+  if (natives.length) {
+    failures.push(
+      `native binaries in the tarball — it would be platform-locked: ${natives.slice(0, 3).join(", ")}`,
     );
   }
   const suspicious = listing.filter((f) => /\.env|_private|sentry\.|\.git\//i.test(f));
@@ -172,7 +188,10 @@ async function run() {
   if (dsnHits) {
     failures.push(`Sentry DSN leaked into the tarball: ${dsnHits.split("\n").slice(0, 3).join(", ")}`);
   }
-  log(`  ${controlPlane.length || suspicious.length || dsnHits ? "✗" : "✓"} tarball audit (${listing.length} files)`);
+  log(
+    `  ${controlPlane.length || suspicious.length || dsnHits || natives.length ? "✗" : "✓"} ` +
+      `tarball audit (${listing.length} files, platform-agnostic)`,
+  );
 
   // 3. Install it as a real consumer would.
   const consumer = path.join(SANDBOX, "consumer");
@@ -199,12 +218,55 @@ async function run() {
   }
   log(`  ✓ installed (${installed.length} top-level entries in node_modules)`);
 
-  // 4. Serve a real docs repo through the installed binary.
+  // sharp is the one thing that cannot be vendored (native binary), so it is declared optional
+  // and npm resolves the right build per platform. If it is missing here, image optimization is
+  // off — which is legal (the CLI warns and serves originals) but not what a normal install
+  // should produce, so the gate treats it as a failure rather than letting it pass unnoticed.
+  const sharpBefore = failures.length;
+  const sharpDir = path.join(consumer, "node_modules", "sharp");
+  if (!existsSync(sharpDir)) {
+    failures.push("sharp was not installed — image optimization would be silently unavailable");
+  }
+  log(`  ${failures.length === sharpBefore ? "✓" : "✗"} sharp resolved for this platform`);
+
+
   const bin = path.join(consumer, "node_modules", ".bin", "papervine");
+
+  // 4. Scaffold with the installed binary, then serve what it produced.
+  //
+  //    This is the only check that can prove `papervine new` works, because the template is
+  //    bundled by `prepack` from examples/starter — it doesn't exist in a source checkout's
+  //    `apps/cli`, so every other suite would pass while a published `new` had nothing to copy.
+  //    Serving the result matters as much as creating it: a scaffold that produces files which
+  //    don't render is worse than no scaffold, since the first thing anyone does is run `dev`.
+  const scaffoldBefore = failures.length;
+  const scaffolded = path.join(SANDBOX, "scaffolded");
+  const created = spawnSync(bin, ["new", scaffolded], { encoding: "utf8" });
+  if (created.status !== 0) {
+    failures.push(`\`papervine new\` exited ${created.status}: ${created.stderr || created.stdout}`);
+  } else if (!existsSync(path.join(scaffolded, "docs.json"))) {
+    failures.push("`papervine new` produced no docs.json");
+  }
+  // Refusing a non-empty directory is the guard against overwriting someone's work, so it's
+  // worth asserting rather than assuming.
+  const refused = spawnSync(bin, ["new", scaffolded], { encoding: "utf8" });
+  if (refused.status === 0) {
+    failures.push("`papervine new` overwrote a non-empty directory instead of refusing");
+  }
+  log(`  ${failures.length === scaffoldBefore ? "✓" : "✗"} scaffolds a site, refuses a non-empty dir`);
+
+  // 5. Serve a real docs repo through the installed binary.
   log(`▶ serving ${DOCS} via the installed binary on :${PORT}`);
   const server = spawn(bin, ["dev", DOCS, "-p", String(PORT)], {
     cwd: consumer,
     stdio: ["ignore", "pipe", "pipe"],
+    // An ambient HOSTNAME must NOT become the bind address. The CLI used to read it, and
+    // Docker sets it to the container id / Kubernetes to the pod name — so in a container the
+    // server bound the container hostname, `curl 127.0.0.1` was refused, and it printed
+    // `http://<container-id>:3000` while claiming to be ready. The override is `PAPERVINE_HOST`
+    // now; this value is unresolvable, so if HOSTNAME ever leaks back in, the bind fails and
+    // waitForReady below times out instead of quietly passing.
+    env: { ...process.env, HOSTNAME: "papervine-hostname-must-be-ignored.invalid" },
   });
   let serverLog = "";
   server.stdout.on("data", (d) => (serverLog += d));
@@ -272,6 +334,54 @@ async function run() {
       }
     }
     log(`  ${failures.length === assetBefore ? "✓" : "✗"} docs-repo asset served (${asset ?? "none"})`);
+
+    // The dbasset route is reachable DIRECTLY at /dbasset/* — middleware's matcher excludes
+    // that prefix, so its asset-extension filter doesn't protect it. Without the route's own
+    // allowlist it was an arbitrary-file reader for the previewed folder: someone running
+    // `papervine dev .` at a project root served their own `.env` over loopback. These are the
+    // three shapes that matter, asserted against the *published* binary because that's the only
+    // place the route runs.
+    const readBefore = failures.length;
+    for (const [probe, why] of [
+      ["/dbasset/docs.json", "config file"],
+      ["/dbasset/.env", "dotfile secret"],
+      ["/dbasset/index.mdx", "page source"],
+    ]) {
+      const res = await fetch(BASE + probe);
+      // 404 (not an asset type) or 403 (outside the root) — anything 2xx is a file read.
+      if (res.ok) {
+        failures.push(`${probe} returned ${res.status} — dbasset is serving a ${why}`);
+      }
+    }
+    // Traversal above the content root must stay refused.
+    const up = await fetch(BASE + "/dbasset/../../../../../../etc/passwd");
+    if (up.ok && (await up.text()).includes("root:")) {
+      failures.push("dbasset traversal escaped the content root");
+    }
+    log(`  ${failures.length === readBefore ? "✓" : "✗"} dbasset serves assets only, no traversal`);
+
+    // The assistant ships compiled into the package, and the only thing a user supplies is a
+    // key. Unconfigured — which is what this clean room is — the endpoint must exist and refuse
+    // with a 503 naming what to set. A 404 would mean the route never shipped, and the Ask
+    // Assistant button would silently never appear with no error anywhere to explain why.
+    const aiBefore = failures.length;
+    const ai = await fetch(BASE + "/api/assistant", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messages: [] }),
+    });
+    if (ai.status === 404) {
+      failures.push("/api/assistant 404s — the assistant did not ship");
+    } else if (ai.status !== 503) {
+      failures.push(`/api/assistant returned ${ai.status}, expected 503 when unconfigured`);
+    } else {
+      const body = await ai.json().catch(() => ({}));
+      // The message has to name the missing variable, or "unavailable" is unactionable.
+      if (!/API_KEY|AI_BASE_URL|OIDC/i.test(String(body.error ?? ""))) {
+        failures.push(`/api/assistant 503 did not say what to configure: ${body.error}`);
+      }
+    }
+    log(`  ${failures.length === aiBefore ? "✓" : "✗"} assistant ships, refuses cleanly without a key`);
 
     // A missing page must 404, not 500.
     const nfBefore = failures.length;

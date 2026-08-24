@@ -4,7 +4,9 @@ import path from "node:path";
 import {
   DEFAULT_PORT,
   parseDevArgs,
+  parseNewArgs,
   validateContentDir,
+  validateNewTarget,
 } from "../../apps/cli/bin/args.mjs";
 
 // The published CLI's decision layer (`apps/cli/bin/args.mjs`). The bin script is a
@@ -21,7 +23,23 @@ describe("parseDevArgs", () => {
       help: false,
       port: DEFAULT_PORT,
       dir: CWD,
+      yes: false,
+      // False by default is what makes a busy port move rather than fail — see resolvePort.
+      portExplicit: false,
     });
+  });
+
+  it("accepts --yes and -y", () => {
+    expect(parseDevArgs(["--yes"], CWD).yes).toBe(true);
+    expect(parseDevArgs(["-y"], CWD).yes).toBe(true);
+  });
+
+  // `--port` has to be a *declared* option for this to be knowable: sniffing argv can't work,
+  // because parseArgs rejects an undeclared flag before any such check could run.
+  it("distinguishes an explicit port from the default", () => {
+    expect(parseDevArgs([], CWD).portExplicit).toBe(false);
+    expect(parseDevArgs(["-p", "4000"], CWD).portExplicit).toBe(true);
+    expect(parseDevArgs(["--port", "4000"], CWD).portExplicit).toBe(true);
   });
 
   it("resolves a relative directory against cwd", () => {
@@ -100,6 +118,66 @@ describe("validateContentDir", () => {
   it("checks existence before docs.json, so a bad path says so", () => {
     expect(validateContentDir({ ...ok, exists: false, hasDocsJson: false })).toMatch(
       /directory not found/,
+    );
+  });
+});
+
+describe("parseNewArgs", () => {
+  it("defaults to the current directory", () => {
+    expect(parseNewArgs([], CWD)).toEqual({ help: false, force: false, dir: CWD });
+  });
+
+  it("resolves a relative target against cwd", () => {
+    expect(parseNewArgs(["my-docs"], CWD).dir).toBe(path.resolve(CWD, "my-docs"));
+  });
+
+  it("accepts --force and -f", () => {
+    expect(parseNewArgs(["--force"], CWD).force).toBe(true);
+    expect(parseNewArgs(["-f", "my-docs"], CWD).force).toBe(true);
+  });
+
+  it("rejects an unknown flag rather than ignoring it", () => {
+    expect(() => parseNewArgs(["--forse"], CWD)).toThrow();
+  });
+
+  it("rejects more than one directory", () => {
+    expect(() => parseNewArgs(["a", "b"], CWD)).toThrow(/at most one directory/);
+  });
+});
+
+describe("validateNewTarget", () => {
+  const base = { dir: "/repo/new", isDirectory: true, force: false };
+
+  it("allows a directory that doesn't exist yet — the normal case", () => {
+    expect(validateNewTarget({ ...base, exists: false, entries: [] })).toBeNull();
+  });
+
+  it("allows an empty directory", () => {
+    expect(validateNewTarget({ ...base, exists: true, entries: [] })).toBeNull();
+  });
+
+  // A freshly `git init`ed or editor-opened directory is empty in every sense the user cares
+  // about; refusing there would be pedantic.
+  it("treats a directory of only dotfiles as empty", () => {
+    expect(validateNewTarget({ ...base, exists: true, entries: [".git", ".DS_Store"] })).toBeNull();
+  });
+
+  // Overwriting someone's files because they mistyped a path is unrecoverable, so the default
+  // has to be refusal.
+  it("refuses a non-empty directory and names what's in the way", () => {
+    const msg = validateNewTarget({ ...base, exists: true, entries: ["src", "package.json"] });
+    expect(msg).toMatch(/is not empty/);
+    expect(msg).toMatch(/src/);
+    expect(msg).toMatch(/--force/);
+  });
+
+  it("allows a non-empty directory with --force", () => {
+    expect(validateNewTarget({ ...base, exists: true, entries: ["src"], force: true })).toBeNull();
+  });
+
+  it("reports a path that is a file, not a directory", () => {
+    expect(validateNewTarget({ ...base, exists: true, isDirectory: false, entries: [] })).toMatch(
+      /not a directory/,
     );
   });
 });
