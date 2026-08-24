@@ -3,8 +3,7 @@
     <h2><b>Papervine CLI</b></h2>
   </a>
   <p>
-    Preview a docs repo of MDX + a <code>docs.json</code> on your machine, with the
-    same renderer that serves it in production.
+    Mintlify compatible alternative. Open source MDX documentation.
   </p>
   <p>
 
