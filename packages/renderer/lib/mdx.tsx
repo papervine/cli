@@ -19,6 +19,8 @@ import type { AssetDimensions } from "./content";
 import {
   CODE_TITLE_COMPONENT,
   LITERAL_IMG_COMPONENT,
+  LITERAL_MEDIA_COMPONENTS,
+  type LiteralMediaTag,
   applyTenantUrls,
   componentsForCompiled,
 } from "./mdx-runtime";
@@ -54,6 +56,29 @@ function remarkLiteralImg() {
         node.name === "img"
       ) {
         node.name = LITERAL_IMG_COMPONENT;
+      }
+      const children = node.children as Record<string, unknown>[] | undefined;
+      if (Array.isArray(children)) children.forEach(visit);
+    };
+    visit(tree as Record<string, unknown>);
+  };
+}
+
+/**
+ * The same rename for literal media, and for the same reason: `<video src="/videos/x.mp4">`
+ * compiles to a bare `_jsx("video")`, so nothing tenant-scopes its src. Video has no component in
+ * the docs.json-compatible schema — raw HTML is the portable form — so the renderer has to handle
+ * the intrinsic, and reaching it means giving it a name the components map can hold.
+ *
+ * Renaming `<source>` matters as much as `<video>`: the src-less form puts every URL on the
+ * children, and rewriting only the parent would fix nothing for it.
+ */
+function remarkLiteralMedia() {
+  return (tree: { children?: unknown[] }) => {
+    const visit = (node: Record<string, unknown>) => {
+      if (node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") {
+        const renamed = LITERAL_MEDIA_COMPONENTS[node.name as LiteralMediaTag];
+        if (renamed) node.name = renamed;
       }
       const children = node.children as Record<string, unknown>[] | undefined;
       if (Array.isArray(children)) children.forEach(visit);
@@ -288,7 +313,7 @@ function remarkCollectAuthorCode(collector: AuthorCodeReport) {
 // bug that made us drop next-mdx-remote originally).
 const mdxOptions = {
   development,
-  remarkPlugins: [remarkGfm, remarkCodeTitles, remarkLiteralImg, remarkMermaid, remarkTreeList],
+  remarkPlugins: [remarkGfm, remarkCodeTitles, remarkLiteralImg, remarkLiteralMedia, remarkMermaid, remarkTreeList],
   rehypePlugins: [rehypeSlug, [rehypeAutolinkHeadings, { behavior: "wrap" }]],
 } as const;
 
@@ -343,13 +368,16 @@ const compileMdx = unstable_cache(
   // otherwise keep serving the pre-change compile until the TTL expired.
   // v2: remarkLiteralImg; v3: remarkMermaid; v4: remarkCodeTitles emits <PvCodeTitle>;
   // v5: remarkCollectAuthorCode + the cached value gained `report`;
-  // v6: the classifier judges JSX spread attributes (mdxJsxExpressionAttribute)
+  // v6: the classifier judges JSX spread attributes (mdxJsxExpressionAttribute);
+  // v7: remarkLiteralMedia renames literal <video>/<source>/<audio>/<iframe> so their src can be
+  //     tenant-scoped — without the bump, a cached compile keeps emitting the bare intrinsic and
+  //     the fix appears not to work (exactly the trap the note above describes)
   //
   // Note the *classification* is cached too, not just the compiled string — so tightening the
   // classifier without bumping this keeps serving the old verdict, and a page that should now go
   // to the client keeps being evaluated on the server. That is exactly how the spread-attribute
   // fix appeared not to work.
-  ["mdx-compile-v6"],
+  ["mdx-compile-v7"],
   { revalidate: 86400 },
 );
 

@@ -8,7 +8,7 @@
  * Nothing here touches the filesystem, the cache or the request: it is plain React, imported by
  * both the server renderer and the client evaluator so there is one definition of each.
  */
-import type { ComponentProps, ReactNode } from "react";
+import { createElement, type ComponentProps, type ReactNode } from "react";
 import type { MDXComponents } from "mdx/types";
 import Image from "next/image";
 
@@ -41,6 +41,27 @@ const warnedComponents = new Set<string>();
 // register it onto the same TenantImage path. (hosted docs platforms repos author images as <img>,
 // often inside <Frame> — see GAP-REPORT.) Unlikely to collide with an author component.
 export const LITERAL_IMG_COMPONENT = "PvImg";
+/**
+ * Media has the SAME problem as literal `<img>`, and needs the same trick.
+ *
+ * `<video src="/videos/x.mp4">` in MDX compiles to a bare `_jsx("video", …)`, so the components
+ * map never sees it and nothing rewrites its src. On a tenant host that's fine — root-relative
+ * already means the tenant. Everywhere an assetBase is set it is not: path-based serving
+ * (`/sites/{slug}`) and the editor's draft preview both render the tenant's MDX from a different
+ * host, so the video resolved against THAT host and 404'd while the markdown image beside it
+ * worked. Renaming to a capitalized name makes the compiler emit `_jsx(_components.PvVideo, …)`,
+ * which applyTenantUrls can reach.
+ *
+ * Keyed by tag so `remarkLiteralMedia` and the overrides can't disagree about the set.
+ */
+export const LITERAL_MEDIA_COMPONENTS = {
+  video: "PvVideo",
+  source: "PvSource",
+  audio: "PvAudio",
+  iframe: "PvIframe",
+} as const;
+
+export type LiteralMediaTag = keyof typeof LITERAL_MEDIA_COMPONENTS;
 // Synthetic name for the code-title wrapper, same rationale as PvImg: capitalized so the
 // MDX compiler routes it through the components map rather than emitting a literal element.
 export const CODE_TITLE_COMPONENT = "PvCodeTitle";
@@ -59,6 +80,9 @@ export function componentsForCompiled(compiledSource: string): MDXComponents {
     ...mdxComponents,
     [LITERAL_IMG_COMPONENT]: Fallback,
     [CODE_TITLE_COMPONENT]: CodeTitle,
+    // Seeded for the same reason as PvImg: the scan below must not treat our own synthetic
+    // names as unknown components. applyTenantUrls swaps in the real ones.
+    ...Object.fromEntries(Object.values(LITERAL_MEDIA_COMPONENTS).map((n) => [n, Fallback])),
   };
   for (const m of compiledSource.matchAll(/_missingMdxReference\("([A-Za-z][\w.]*)"/g)) {
     const name = m[1].split(".")[0]; // root of member expressions (Foo.Bar -> Foo)
@@ -162,6 +186,11 @@ export function applyTenantUrls(
   // Literal `<img>` tags, renamed by remarkLiteralImg, render through the same override
   // so markdown and HTML images optimize identically (lazy + dimensions + next/image).
   out[LITERAL_IMG_COMPONENT] = out.img;
+  // Same for literal media — before the early return, because these names have to resolve on a
+  // tenant host too (where the rewrite is a no-op but the element still has to render).
+  for (const [tag, name] of Object.entries(LITERAL_MEDIA_COMPONENTS)) {
+    out[name] = literalMedia(tag as LiteralMediaTag, assetBase);
+  }
   if (!linkBase && !assetBase) return out;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rewrite = (props: any) => {
@@ -180,5 +209,24 @@ export function applyTenantUrls(
     out[name] = (props: any) => <Comp {...rewrite(props)} />;
   }
   out.a = ({ href, ...rest }: ComponentProps<"a">) => <a href={withBase(href, linkBase)} {...rest} />;
+
   return out;
+}
+
+/**
+ * A literal media element, renamed by `remarkLiteralMedia` so it reaches this map, rendered back
+ * as the real tag with its asset URLs tenant-scoped.
+ *
+ * Registered unconditionally — `withBase` is a no-op with an empty base, so a tenant host gets
+ * byte-identical output, and the renamed element MUST always resolve to something or it would
+ * fall through to the unknown-component Fallback and the video would silently vanish.
+ */
+function literalMedia(tag: LiteralMediaTag, assetBase: string) {
+  return function LiteralMedia(props: Record<string, unknown>) {
+    const next: Record<string, unknown> = { ...props };
+    if (typeof props.src === "string") next.src = withBase(props.src, assetBase);
+    // `poster` is an asset too — forgetting it leaves a broken still over a working video.
+    if (typeof props.poster === "string") next.poster = withBase(props.poster, assetBase);
+    return createElement(tag, next);
+  };
 }
