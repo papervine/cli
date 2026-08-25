@@ -23,6 +23,13 @@ import { Mermaid } from "./Mermaid";
 // tag-keyed map below).
 export { Mermaid };
 
+// Exported by name as well as through the map, because the editor's Steps/Step node views need
+// more than "wrap this around a content hole": <Steps> gets an "add a step" button appended
+// inside it (so the button inherits the rail's geometry instead of re-deriving it), and <Step>
+// gets an input passed as its `title` (so the editable title slot gets the heading's real
+// styling instead of a copy of its classes).
+export { Steps, Step };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const editorComponents: Record<string, ComponentType<any>> = {
   Note,

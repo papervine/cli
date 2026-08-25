@@ -8,7 +8,9 @@ export function Steps({ children }: { children: ReactNode }) {
   );
 }
 
-export function Step({ title, children }: { title?: string; children: ReactNode }) {
+// `title` is a ReactNode rather than a string so the Visual editor can hand in an input and get
+// the heading's real styling for free (see StepsNodeView). From MDX it is always a string.
+export function Step({ title, children }: { title?: ReactNode; children: ReactNode }) {
   return (
     <div className="relative mb-6 [counter-increment:step] last:mb-0">
       <span className="absolute -left-[2.35rem] flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white before:content-[counter(step)]" />

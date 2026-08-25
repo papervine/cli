@@ -1,0 +1,37 @@
+---
+title: Media
+---
+
+MEDIA_PAGE_MARKER
+
+Video and embeds have no component in the docs.json-compatible schema — the documented form is
+raw HTML, so that is what has to render. MDX treats a lowercase tag as an intrinsic element, so
+these reach the page as real `<video>` / `<iframe>` elements.
+
+A self-hosted video in the shape the compatibility target's own guidance prescribes:
+
+<video controls className="w-full aspect-video rounded-xl" src="/videos/demo.mp4"></video>
+
+The autoplay variant, where the boolean attributes are what matter:
+
+<video autoPlay muted loop playsInline className="w-full aspect-video rounded-xl" src="/videos/loop.mp4"></video>
+
+A `<source>` list rather than a `src` — the form the editor deliberately declines to render as a
+live player, but which readers must still get:
+
+<video controls className="w-full aspect-video rounded-xl">
+  <source src="/videos/demo.webm" type="video/webm" />
+  <source src="/videos/demo.mp4" type="video/mp4" />
+</video>
+
+A third-party embed, inside a `<Frame>` as the guidance recommends:
+
+<Frame>
+  <iframe
+    className="w-full aspect-video rounded-xl"
+    src="https://www.youtube.com/embed/MEDIA_EMBED_MARKER"
+    title="YouTube video player"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  ></iframe>
+</Frame>
