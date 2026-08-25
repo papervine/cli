@@ -422,6 +422,55 @@ async function run() {
       }
     }
     log(`  ${failures.length === searchBefore ? "✓" : "✗"} search returns hits (q="${term}")`);
+
+    // The MCP server (SPEC §8.5). Worth a real JSON-RPC exchange rather than a status check:
+    // the SDK's Web-standard transport is *compiled into* the server rather than installed
+    // beside it, so "the route responds" and "the protocol works from a tarball" are different
+    // claims — and only the second one is what a self-hoster's editor depends on.
+    const mcpBefore = failures.length;
+    const rpc = async (id, method, params) => {
+      const res = await fetch(`${BASE}/mcp`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+        body: JSON.stringify({ jsonrpc: "2.0", id, method, ...(params ? { params } : {}) }),
+      });
+      return res.ok ? res.json() : { error: `HTTP ${res.status}` };
+    };
+
+    const init = await rpc(1, "initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "cli-package-test", version: "1.0" },
+    });
+    if (init?.result?.serverInfo?.name !== "Papervine Docs") {
+      failures.push(`MCP initialize did not return serverInfo: ${JSON.stringify(init).slice(0, 200)}`);
+    }
+
+    const listed = await rpc(2, "tools/list");
+    const toolNames = (listed?.result?.tools ?? []).map((t) => t.name).sort();
+    // search_api is conditional on the repo having an OpenAPI reference, so it is not required.
+    for (const required of ["list_pages", "read_page", "search_docs"]) {
+      if (!toolNames.includes(required)) failures.push(`MCP tools/list is missing ${required}`);
+    }
+
+    // A tool call has to return real content, not just a well-formed envelope.
+    const called = await rpc(3, "tools/call", {
+      name: "search_docs",
+      arguments: { query: term },
+    });
+    const payload = called?.result?.content?.[0]?.text;
+    let hits = null;
+    try {
+      hits = JSON.parse(payload ?? "null");
+    } catch {
+      /* handled below */
+    }
+    if (!Array.isArray(hits) || hits.length === 0 || !hits[0]?.href) {
+      failures.push(`MCP search_docs returned no usable hits: ${String(payload).slice(0, 200)}`);
+    }
+    log(
+      `  ${failures.length === mcpBefore ? "✓" : "✗"} MCP server: initialize, ${toolNames.length} tools, search_docs returns hits`,
+    );
   } catch (e) {
     // Boot failures are the interesting ones and the server's own output is the only
     // place the reason appears, so re-throw with it attached rather than losing it.

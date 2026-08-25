@@ -10,7 +10,7 @@ Point it at a folder of MDX and a `docs.json`. It's a production build of the sa
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -302,6 +302,30 @@ weaker answers than a frontier model gives.
 metering and reports nothing anywhere. Full guide:
 <a href="https://docs.papervine.io/features/assistant-providers">Connecting a model</a>.</sub>
 
+### MCP server
+
+The docs are also served as a [Model Context Protocol](https://modelcontextprotocol.io) server at
+**`/mcp`**, so an AI client — Claude, Cursor, Windsurf, an agent — can search and read them live.
+Nothing to enable and no key required: it is the same retrieval the assistant uses, over a second
+transport.
+
+Add it as a Streamable HTTP MCP server:
+
+```
+http://localhost:3000/mcp
+```
+
+| Tool | What it does |
+| --- | --- |
+| `search_docs` | Full-text search; returns titles, hrefs with `#anchors`, and snippets |
+| `read_page` | The full Markdown of a page, by slug |
+| `list_pages` | Every page, so a model can see what exists |
+| `search_api` | Search OpenAPI operations — registered only when your `docs.json` references a spec |
+
+Because it reads from disk per request like every other route, an edit is visible to the next tool
+call. On a deployed site this is the endpoint that makes your docs usable by other people's
+agents; see the [self-hosting guide](https://docs.papervine.io/guides/self-hosting).
+
 ### Output
 
 `papervine --help` and `papervine --version` print the command surface and the installed
@@ -338,7 +362,8 @@ you edit a file, so searching doesn't wait on it.
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/search.png" width="900" alt="The search palette open over a docs page, showing ranked results with their section breadcrumb and a matching excerpt from each page" />
 
-**The AI assistant is included too**, and appears once you configure a model — see below.
+**The AI assistant is included too**, and appears once you configure a model — see below. So is
+an [MCP server](#mcp-server) at `/mcp`, which needs no configuration at all.
 
 ### Compatibility
 
