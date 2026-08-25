@@ -399,6 +399,30 @@ async function run() {
     if (nf.status !== 404) failures.push(`missing page returned ${nf.status}, expected 404`);
     log(`  ${failures.length === nfBefore ? "✓" : "✗"} missing page 404s`);
 
+    // The generated social card (SPEC §5). This belongs in the CLEAN ROOM specifically:
+    // `next/og` renders through wasm (resvg + yoga) and a bundled font that live inside the
+    // `next` package and are reached by a *dynamic* import, so "it renders in the monorepo" and
+    // "it renders from a tarball" are different claims — the exact shape that broke the
+    // Turbopack externals (see the `npm pack` symlink gotcha). A shared link with no image is
+    // silent: nothing logs, the card just doesn't appear.
+    const ogBefore = failures.length;
+    const ogRes = await fetch(BASE + "/api/og");
+    const ogBytes = new Uint8Array(await ogRes.arrayBuffer());
+    if (ogRes.status !== 200) {
+      failures.push(`/api/og returned ${ogRes.status}, expected 200`);
+    } else if (!(ogRes.headers.get("content-type") ?? "").startsWith("image/png")) {
+      failures.push(`/api/og served "${ogRes.headers.get("content-type")}", expected image/png`);
+    } else if (ogBytes.length < 1000 || ogBytes[0] !== 0x89 || ogBytes[1] !== 0x50) {
+      // ImageResponse streams, so a satori/wasm failure mid-render yields a 200 with the right
+      // header and a truncated body — a status check alone would sail past it.
+      failures.push(`/api/og body is not a plausible PNG (${ogBytes.length} bytes)`);
+    }
+    // And the page must actually point at it, or the image existing changes nothing.
+    if (!home.includes("summary_large_image")) {
+      failures.push("the home page does not advertise a twitter:card — no card will unfurl");
+    }
+    log(`  ${failures.length === ogBefore ? "✓" : "✗"} social card renders + pages advertise it`);
+
     // Search: an in-memory Orama index over the served folder, so it has to work from the
     // packaged bundle with no backend. The query is derived from the nav rather than
     // hardcoded, since this runs against a different docs repo in the mirrored repo.

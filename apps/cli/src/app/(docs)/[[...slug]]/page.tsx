@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadPage, loadConfig, loadAssetDimensions } from "@papervine/renderer/lib/content";
 import { buildNav, findGroupLabel } from "@papervine/renderer/lib/nav";
+import { pageMetadata, ogImagePath } from "@papervine/renderer/lib/seo";
 import { loadApiCatalog } from "@papervine/renderer/lib/openapi";
 import { Mdx, extractToc } from "@papervine/renderer/lib/mdx";
 import { TableOfContents } from "@papervine/renderer/components/TableOfContents";
@@ -27,13 +28,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const slugStr = (slug ?? []).join("/");
+  const config = await loadConfig();
   const page = await loadPage(slugStr);
-  if (page) {
-    return { title: page.frontmatter.title, description: page.frontmatter.description };
-  }
-  const op = (await loadApiCatalog(await loadConfig())).get(slugStr);
-  if (op) return { title: op.summary ?? `${op.method} ${op.path}`, description: op.description };
-  return {};
+  // Single-repo serving: assets are root-absolute (no tenant proxy), so `assetBase` stays "".
+  const op = page ? undefined : (await loadApiCatalog(config)).get(slugStr);
+  if (!page && !op) return {};
+  return pageMetadata({
+    config,
+    frontmatter: page?.frontmatter,
+    title: op ? (op.summary ?? `${op.method} ${op.path}`) : undefined,
+    description: op?.description,
+    path: `/${slugStr}`.replace(/\/+$/, ""),
+    ogImage: ogImagePath(slugStr),
+  });
 }
 
 export default async function DocsPage({ params }: { params: Promise<Params> }) {

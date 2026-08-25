@@ -50,6 +50,19 @@ export const docsConfigSchema = z
       .optional()
       .catch(undefined),
     footer: z.object({}).passthrough().optional().catch(undefined),
+    // Social/SEO (SPEC §4). `metatags` is an open name→content map applied to every page —
+    // the site-wide way to set `og:image`, `twitter:site`, a verification token — and page
+    // frontmatter overrides it per page (see ./seo.ts). Every value is coerced to a string
+    // downstream, so a number or a stray nested object degrades to "ignore that one tag"
+    // rather than dropping the block.
+    seo: z
+      .object({
+        metatags: z.record(z.string(), z.unknown()).optional().catch(undefined),
+        indexing: z.enum(["navigable", "all"]).optional().catch(undefined),
+      })
+      .passthrough()
+      .optional()
+      .catch(undefined),
     // Site-wide announcement bar, rendered above the navbar. `content` is the only field
     // that matters — without it there's nothing to show, so a malformed banner resolves to
     // undefined and the site renders as though it were absent, per the warn-don't-throw rule.
@@ -71,7 +84,7 @@ export type DocsConfig = z.infer<typeof docsConfigSchema>;
 /** Top-level keys Papervine actively understands; others are passed through but flagged. */
 const KNOWN_KEYS = new Set([
   "$schema", "name", "theme", "appearance", "logo", "favicon", "colors",
-  "navigation", "navbar", "footer",
+  "navigation", "navbar", "footer", "seo",
   // Reader-auth gating (SPEC §11.2) is configured in the dashboard, not docs.json, but
   // representative docs repos may still carry an `authentication` block — pass it through
   // without a noisy warning.

@@ -1,14 +1,23 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { loadBuildSafeConfig } from "../lib/build-safe-config";
 import { resolveTheme, themeCssVars } from "@papervine/renderer/lib/theme";
+import { originFromHost } from "@papervine/renderer/lib/origin";
 
 // The CLI renders a single local docs repo (the folder `papervine dev` points at,
 // via PAPERVINE_CONTENT), so config reads come straight from the default content
 // source — no per-tenant content-source resolution like the hosted app needs.
 export async function generateMetadata(): Promise<Metadata> {
   const config = await loadBuildSafeConfig();
+  // `metadataBase` turns the docs route's root-relative `og:image`/canonical URLs into the
+  // absolute ones crawlers require. It comes from the request because a self-hosted
+  // `papervine serve` answers on whatever host the operator put in front of it — there is no
+  // configured base URL to read, and a wrong one drops the card entirely.
+  const h = await headers();
+  const origin = originFromHost(h.get("host"), h.get("x-forwarded-proto"));
   return {
+    ...(origin ? { metadataBase: new URL(origin) } : {}),
     title: { default: config.name, template: `%s · ${config.name}` },
   };
 }

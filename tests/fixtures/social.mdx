@@ -1,0 +1,16 @@
+---
+title: Social Card Fixture
+description: A page that supplies its own social image instead of the generated card.
+og:image: /img/SOCIAL_OVERRIDE.png
+twitter:card: summary
+article:author: SOCIAL_PASSTHROUGH_MARKER
+---
+
+Exercises the metadata precedence in `lib/seo.ts`. The body deliberately mentions none of
+the strings the smoke check excludes — an assertion that the *generated* card is absent
+would otherwise be satisfied by this prose describing it.
+
+- The frontmatter image must beat the auto-generated card.
+- The explicit card type must beat the wide default.
+- A namespaced key we don't model must be passed through verbatim.
+- The site-wide tags in `docs.json` must still apply.

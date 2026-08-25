@@ -11,6 +11,11 @@
     "dark": "#5B21B6"
   },
   "unsupportedTopLevelKey": "should warn, not crash",
+  "seo": {
+    "metatags": {
+      "twitter:site": "@SITEWIDE_HANDLE"
+    }
+  },
   "navigation": {
     "languages": [
       {
@@ -38,7 +43,8 @@
                   "with-snippet",
                   "mermaid",
                   "author-code",
-                  "author-violation"
+                  "author-violation",
+                  "social"
                 ]
               }
             ]

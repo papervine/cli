@@ -16,6 +16,11 @@ export type PageFrontmatter = {
   tag?: string; // small badge shown next to the sidebar entry
   hidden?: boolean; // reachable by URL, but omitted from the sidebar
   noindex?: boolean; // exclude from search/SEO
+  keywords?: string[]; // <meta name="keywords">, authored in the editor's page settings
+  // Any namespaced key (`og:image`, `twitter:card`, `article:author`) is emitted as a meta
+  // tag — see ./seo.ts. Typed loosely on purpose: the set is open by design (it's a
+  // compatibility surface), and `frontmatterMetatags` is the one place that reads it.
+  [metatag: `${string}:${string}`]: unknown;
   // Reader-auth access control (SPEC §11.2). `groups` gates the page to readers in ≥1 of the
   // listed groups (from the auth handshake); `public` opts a page out of group gating.
   // Enforced in the node render (page gate + nav hiding) — see render-tenant.tsx.
