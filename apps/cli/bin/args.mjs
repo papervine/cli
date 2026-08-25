@@ -9,18 +9,26 @@ import path from "node:path";
 export const DEFAULT_PORT = 3000;
 
 /**
- * Parse `papervine dev` arguments into a plan.
+ * Parse the arguments shared by `papervine dev` and `papervine serve`.
  *
- * @param {string[]} argv - args after the `dev` subcommand
+ * One parser for both because they run the *same server* — the difference is framing and two
+ * defaults (see `mode` below), not behaviour worth a second flag surface.
+ *
+ * @param {string[]} argv - args after the subcommand
  * @param {string} cwd - resolved against, so the result is always absolute
- * @returns {{help: boolean, port: number, dir: string, yes: boolean, portExplicit: boolean}}
+ * @returns {{help: boolean, port: number, dir: string, yes: boolean, portExplicit: boolean,
+ *            host: string|undefined, hostExplicit: boolean}}
  * @throws {Error} on an unknown flag or an unusable --port
  */
-export function parseDevArgs(argv, cwd) {
+export function parseServerArgs(argv, cwd) {
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
       port: { type: "string", short: "p" },
+      // The bind address. A flag as well as `PAPERVINE_HOST`, because a production deployment
+      // shouldn't need an environment variable to reach its own network — and a flag is
+      // self-documenting in a Dockerfile CMD in a way an env var isn't.
+      host: { type: "string" },
       // Scaffold without asking when there are no docs. Declared here rather than sniffed out
       // of argv, because `parseArgs` rejects an undeclared flag before any such check could run.
       yes: { type: "boolean", short: "y" },
@@ -30,7 +38,15 @@ export function parseDevArgs(argv, cwd) {
   });
 
   if (values.help) {
-    return { help: true, port: DEFAULT_PORT, dir: cwd, yes: false, portExplicit: false };
+    return {
+      help: true,
+      port: DEFAULT_PORT,
+      dir: cwd,
+      yes: false,
+      portExplicit: false,
+      host: undefined,
+      hostExplicit: false,
+    };
   }
 
   let port = DEFAULT_PORT;
@@ -52,6 +68,10 @@ export function parseDevArgs(argv, cwd) {
     );
   }
 
+  if (values.host !== undefined && values.host.trim() === "") {
+    throw new Error("--host needs a value, e.g. --host 0.0.0.0");
+  }
+
   return {
     help: false,
     port,
@@ -60,8 +80,11 @@ export function parseDevArgs(argv, cwd) {
     // An explicit `--port` is a request, not a suggestion: the caller told us where to serve,
     // so a busy port is an error rather than something to quietly move away from.
     portExplicit: values.port !== undefined,
+    host: values.host?.trim(),
+    hostExplicit: values.host !== undefined,
   };
 }
+
 
 /**
  * Parse `papervine new` arguments.
@@ -123,17 +146,21 @@ export function validateNewTarget({ dir, exists, isDirectory, entries, force }) 
  * Decide whether a directory is a previewable docs repo. Takes the filesystem
  * probe results as inputs rather than doing the probing, so it stays pure.
  *
- * @param {{dir: string, exists: boolean, isDirectory: boolean, hasDocsJson: boolean}} probe
+ * `command` only shapes the hint: being told to run `papervine dev ./docs` after typing
+ * `papervine serve` is a small thing that reads as the tool not listening.
+ *
+ * @param {{dir: string, exists: boolean, isDirectory: boolean, hasDocsJson: boolean,
+ *          command?: string}} probe
  * @returns {string | null} an error message, or null when the directory is usable
  */
-export function validateContentDir({ dir, exists, isDirectory, hasDocsJson }) {
+export function validateContentDir({ dir, exists, isDirectory, hasDocsJson, command = "dev" }) {
   if (!exists) return `directory not found: ${dir}`;
   if (!isDirectory) return `not a directory: ${dir}`;
   if (!hasDocsJson) {
     return (
       `no docs.json in ${dir}\n` +
       `  A Papervine docs repo needs a docs.json at its root.\n` +
-      `  Pass the folder that contains it, e.g. \`papervine dev ./docs\`.`
+      `  Pass the folder that contains it, e.g. \`papervine ${command} ./docs\`.`
     );
   }
   return null;

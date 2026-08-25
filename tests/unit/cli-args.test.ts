@@ -3,7 +3,7 @@ import path from "node:path";
 
 import {
   DEFAULT_PORT,
-  parseDevArgs,
+  parseServerArgs,
   parseNewArgs,
   validateContentDir,
   validateNewTarget,
@@ -17,78 +17,82 @@ import {
 
 const CWD = "/repo";
 
-describe("parseDevArgs", () => {
+describe("parseServerArgs", () => {
   it("defaults to the current directory on the default port", () => {
-    expect(parseDevArgs([], CWD)).toEqual({
+    expect(parseServerArgs([], CWD)).toEqual({
       help: false,
       port: DEFAULT_PORT,
       dir: CWD,
       yes: false,
       // False by default is what makes a busy port move rather than fail — see resolvePort.
       portExplicit: false,
+      // The parser deliberately does NOT default the host: `dev` and `serve` want different
+      // addresses, so the mode-aware caller (`resolveHost`) decides and this stays pure.
+      host: undefined,
+      hostExplicit: false,
     });
   });
 
   it("accepts --yes and -y", () => {
-    expect(parseDevArgs(["--yes"], CWD).yes).toBe(true);
-    expect(parseDevArgs(["-y"], CWD).yes).toBe(true);
+    expect(parseServerArgs(["--yes"], CWD).yes).toBe(true);
+    expect(parseServerArgs(["-y"], CWD).yes).toBe(true);
   });
 
   // `--port` has to be a *declared* option for this to be knowable: sniffing argv can't work,
   // because parseArgs rejects an undeclared flag before any such check could run.
   it("distinguishes an explicit port from the default", () => {
-    expect(parseDevArgs([], CWD).portExplicit).toBe(false);
-    expect(parseDevArgs(["-p", "4000"], CWD).portExplicit).toBe(true);
-    expect(parseDevArgs(["--port", "4000"], CWD).portExplicit).toBe(true);
+    expect(parseServerArgs([], CWD).portExplicit).toBe(false);
+    expect(parseServerArgs(["-p", "4000"], CWD).portExplicit).toBe(true);
+    expect(parseServerArgs(["--port", "4000"], CWD).portExplicit).toBe(true);
   });
 
   it("resolves a relative directory against cwd", () => {
-    expect(parseDevArgs(["./docs"], CWD).dir).toBe(path.resolve(CWD, "docs"));
+    expect(parseServerArgs(["./docs"], CWD).dir).toBe(path.resolve(CWD, "docs"));
   });
 
   it("keeps an absolute directory as given", () => {
-    expect(parseDevArgs(["/elsewhere/docs"], CWD).dir).toBe("/elsewhere/docs");
+    expect(parseServerArgs(["/elsewhere/docs"], CWD).dir).toBe("/elsewhere/docs");
   });
 
   it("accepts --port and -p", () => {
-    expect(parseDevArgs(["--port", "4000"], CWD).port).toBe(4000);
-    expect(parseDevArgs(["-p", "4000"], CWD).port).toBe(4000);
+    expect(parseServerArgs(["--port", "4000"], CWD).port).toBe(4000);
+    expect(parseServerArgs(["-p", "4000"], CWD).port).toBe(4000);
   });
 
   it("takes a port and a directory together, in either order", () => {
-    expect(parseDevArgs(["-p", "4000", "./docs"], CWD)).toMatchObject({
+    expect(parseServerArgs(["-p", "4000", "./docs"], CWD)).toMatchObject({
       port: 4000,
       dir: path.resolve(CWD, "docs"),
     });
-    expect(parseDevArgs(["./docs", "-p", "4000"], CWD)).toMatchObject({
+    expect(parseServerArgs(["./docs", "-p", "4000"], CWD)).toMatchObject({
       port: 4000,
       dir: path.resolve(CWD, "docs"),
     });
   });
 
   it("reports help without needing a valid directory", () => {
-    expect(parseDevArgs(["--help"], CWD).help).toBe(true);
-    expect(parseDevArgs(["-h"], CWD).help).toBe(true);
+    expect(parseServerArgs(["--help"], CWD).help).toBe(true);
+    expect(parseServerArgs(["-h"], CWD).help).toBe(true);
   });
 
   // A non-numeric port used to reach the server as NaN and surface as an opaque
   // listen failure; fail on the flag instead, where the message can name the flag.
   it("rejects a non-numeric port", () => {
-    expect(() => parseDevArgs(["-p", "abc"], CWD)).toThrow(/--port must be a number/);
-    expect(() => parseDevArgs(["-p", "80.5"], CWD)).toThrow(/--port must be a number/);
+    expect(() => parseServerArgs(["-p", "abc"], CWD)).toThrow(/--port must be a number/);
+    expect(() => parseServerArgs(["-p", "80.5"], CWD)).toThrow(/--port must be a number/);
   });
 
   it("rejects an out-of-range port", () => {
-    expect(() => parseDevArgs(["-p", "0"], CWD)).toThrow(/between 1 and 65535/);
-    expect(() => parseDevArgs(["-p", "70000"], CWD)).toThrow(/between 1 and 65535/);
+    expect(() => parseServerArgs(["-p", "0"], CWD)).toThrow(/between 1 and 65535/);
+    expect(() => parseServerArgs(["-p", "70000"], CWD)).toThrow(/between 1 and 65535/);
   });
 
   it("rejects an unknown flag rather than ignoring it", () => {
-    expect(() => parseDevArgs(["--porb", "4000"], CWD)).toThrow();
+    expect(() => parseServerArgs(["--porb", "4000"], CWD)).toThrow();
   });
 
   it("rejects more than one directory", () => {
-    expect(() => parseDevArgs(["./a", "./b"], CWD)).toThrow(/at most one directory/);
+    expect(() => parseServerArgs(["./a", "./b"], CWD)).toThrow(/at most one directory/);
   });
 });
 
@@ -179,5 +183,50 @@ describe("validateNewTarget", () => {
     expect(validateNewTarget({ ...base, exists: true, isDirectory: false, entries: [] })).toMatch(
       /not a directory/,
     );
+  });
+});
+
+describe("--host", () => {
+  it("is absent unless given, so the caller picks the default per mode", () => {
+    expect(parseServerArgs([], CWD).host).toBeUndefined();
+    expect(parseServerArgs([], CWD).hostExplicit).toBe(false);
+  });
+
+  it("takes an address and reports that it was explicit", () => {
+    const plan = parseServerArgs(["--host", "0.0.0.0"], CWD);
+    expect(plan.host).toBe("0.0.0.0");
+    expect(plan.hostExplicit).toBe(true);
+  });
+
+  it("trims, so a quoted value from a Dockerfile CMD still binds", () => {
+    expect(parseServerArgs(["--host", " 127.0.0.1 "], CWD).host).toBe("127.0.0.1");
+  });
+
+  it("rejects an empty value rather than silently falling back", () => {
+    // `--host ''` means the caller tried to set an address. Quietly using the default would
+    // bind somewhere they didn't ask for, which for `serve` is the whole network.
+    expect(() => parseServerArgs(["--host", ""], CWD)).toThrow(/--host needs a value/);
+  });
+
+  it("composes with a directory and a port", () => {
+    const plan = parseServerArgs(["./docs", "--host", "0.0.0.0", "-p", "8080"], CWD);
+    expect(plan.dir).toBe(path.resolve(CWD, "docs"));
+    expect(plan.host).toBe("0.0.0.0");
+    expect(plan.port).toBe(8080);
+  });
+});
+
+describe("validateContentDir's hint", () => {
+  const probe = { dir: "/srv/docs", exists: true, isDirectory: true, hasDocsJson: false };
+
+  it("names the command that was actually run", () => {
+    // Being told to run `papervine dev ./docs` after typing `papervine serve` reads as the tool
+    // not listening.
+    expect(validateContentDir({ ...probe, command: "serve" })).toContain("papervine serve ./docs");
+    expect(validateContentDir({ ...probe, command: "dev" })).toContain("papervine dev ./docs");
+  });
+
+  it("defaults to dev when no command is supplied", () => {
+    expect(validateContentDir(probe)).toContain("papervine dev ./docs");
   });
 });

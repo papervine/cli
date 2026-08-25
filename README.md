@@ -10,7 +10,7 @@ Point it at a folder of MDX and a `docs.json`. It's a production build of the sa
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#serving-it-in-production) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -77,9 +77,9 @@ Serve the docs in `[dir]`, defaulting to the current directory. The directory mu
 contain a `docs.json` at its root.
 
 Despite the name, this is not a development server. It runs a **production build** of the
-renderer with `NODE_ENV=production` — there is no dev-mode compile step and no HMR. The same
-command is what you use on your laptop and on a box serving real traffic; see
-[Serving it in production](#serving-it-in-production).
+renderer with `NODE_ENV=production` — there is no dev-mode compile step and no HMR. For a box
+serving real traffic, use [`papervine serve`](#papervine-serve-dir), which is the same server
+with production defaults.
 
 ```
 papervine dev
@@ -129,25 +129,48 @@ Pages are rendered per request, so saving an `.mdx` file and refreshing the brow
 shows the change. There is no hot reload — a refresh is the update. (This is the same
 mechanism that lets a deployed site pick up new files without a restart.)
 
+#### `papervine serve [dir]`
+
+The same server as `dev`, with production defaults. Use this one on anything serving real
+traffic.
+
+```
+papervine serve ./docs
+```
+
+**Options**
+
+| Flag                | Description                                          | Default   |
+| ------------------- | ---------------------------------------------------- | --------- |
+| `-p, --port <port>` | Port to serve on                                     | `3000`    |
+| `--host <addr>`     | Bind address                                         | `0.0.0.0` |
+| `-h, --help`        | Show help                                            | —         |
+
+Two things differ from `dev`, and nothing else does:
+
+- **It binds every interface** (`0.0.0.0`), because being reachable is the point. `dev` stays on
+  loopback so a command you run on your laptop isn't on the LAN by default. Both print which
+  address they bound.
+- **It never scaffolds.** `dev` offers to create a starter site when it finds no `docs.json`;
+  `serve` fails, because a production server that invents content hides the real problem — a
+  wrong path, an unmounted volume.
+
 #### Serving it in production
 
 The renderer here is the one behind Papervine's hosted sites, built the same way, so serving
 your own docs from it is a supported thing to do rather than a hack.
 
-**Bind an interface.** By default it binds loopback (`127.0.0.1`) rather than every interface,
-because a command you run on your laptop has no business being on the LAN by default. To serve
-traffic, set the host explicitly:
-
-```
-PAPERVINE_HOST=0.0.0.0 papervine dev ./docs --port 3000
-```
-
-(`PAPERVINE_HOST`, not `HOSTNAME` — Docker and Kubernetes set `HOSTNAME` for their own reasons,
-and that shouldn't decide what your site is reachable from.)
-
 **Terminate TLS in front of it.** There is no HTTPS here and no `Host` routing — run it behind
 nginx, Caddy, a cloud load balancer, or whatever already terminates certificates for you, and
-proxy to the port above.
+proxy to the port. Behind a proxy, pin the server back to loopback so only the proxy can reach
+it:
+
+```
+papervine serve ./docs --host 127.0.0.1
+```
+
+(`--host` or `PAPERVINE_HOST` — **not** `HOSTNAME`, which Docker and Kubernetes set for their own
+reasons and which shouldn't decide what your site is reachable from.)
 
 **Deploying an update is replacing files.** Pages are read from disk per request, so writing new
 MDX into the served directory publishes it — no rebuild, no restart. The expensive half of
@@ -166,9 +189,8 @@ The whole thing in a Dockerfile:
 FROM node:22-slim
 RUN npm i -g papervine
 COPY docs /docs
-ENV PAPERVINE_HOST=0.0.0.0
 EXPOSE 3000
-CMD ["papervine", "dev", "/docs", "--port", "3000"]
+CMD ["papervine", "serve", "/docs", "--port", "3000"]
 ```
 
 Mount your docs instead of copying them (`-v /srv/docs:/docs:ro`) and writing new MDX into that
@@ -377,7 +399,7 @@ takes the process from "reachable by me" to "reachable by the network".
 
 ### Roadmap
 
-`new` and `dev` are the surface today. Next up: `broken-links`, `validate`,
+`new`, `dev` and `serve` are the surface today. Next up: `broken-links`, `validate`,
 `openapi-check`, and `build` (static export).
 
 ### Get started

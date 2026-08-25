@@ -23,7 +23,7 @@ import { createInterface } from "node:readline";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-import { parseDevArgs, parseNewArgs, validateContentDir, validateNewTarget } from "./args.mjs";
+import { parseServerArgs, parseNewArgs, validateContentDir, validateNewTarget } from "./args.mjs";
 import { bold, brand, brandLight, dim, red, rows, yellow } from "./style.mjs";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,7 +40,23 @@ const SERVER_ENTRY = path.join(PKG_ROOT, "server", "server.js");
 // `curl 127.0.0.1:3000` inside it got connection-refused while the CLI cheerfully printed
 // `http://<container-id>:3000` and claimed to be ready. A variable that ubiquitous has no
 // business controlling network exposure.
-const HOST = process.env.PAPERVINE_HOST || "127.0.0.1";
+/**
+ * The bind address, in precedence order: `--host`, then `PAPERVINE_HOST`, then the mode's
+ * default — loopback for `dev`, every interface for `serve`.
+ *
+ * Deliberately NOT `HOSTNAME`, which is what this used to read. `HOSTNAME` is set by the
+ * environment for unrelated reasons — Docker sets it to the container id, Kubernetes to the pod
+ * name, and interactive shells export it — so the bind address silently became whatever that
+ * was. In a container the server bound the container's own hostname, which meant
+ * `curl 127.0.0.1:3000` inside it got connection-refused while the CLI cheerfully printed
+ * `http://<container-id>:3000` and claimed to be ready. A variable that ubiquitous has no
+ * business controlling network exposure.
+ */
+function resolveHost(plan, serving) {
+  if (plan?.host) return plan.host;
+  if (process.env.PAPERVINE_HOST) return process.env.PAPERVINE_HOST;
+  return serving ? "0.0.0.0" : "127.0.0.1";
+}
 
 /**
  * In a source checkout only: is the prebuilt server older than the sources it was built from?
@@ -130,6 +146,7 @@ function printHelp() {
       ["papervine dev", "Preview the docs in the current directory"],
       ["papervine dev ./docs", "Preview a subfolder"],
       ["papervine dev -p 4000", "Preview on a specific port"],
+      ["papervine serve ./docs", "Serve it for real, behind your own proxy"],
     ]),
   );
   out.push("");
@@ -138,7 +155,8 @@ function printHelp() {
   out.push(
     rows([
       ["new [dir]", "Create a documentation site (default: .)"],
-      ["dev [dir]", "Serve your site — locally or in production (default: .)"],
+      ["dev [dir]", "Serve your site locally while you write (default: .)"],
+      ["serve [dir]", "Serve your site for real — binds every interface (default: .)"],
     ]),
   );
   out.push("");
@@ -146,7 +164,8 @@ function printHelp() {
   out.push(bold("OPTIONS"));
   out.push(
     rows([
-      ["-p, --port <port>", "dev — port to serve on (default: 3000)"],
+      ["-p, --port <port>", "dev/serve — port to serve on (default: 3000)"],
+      ["--host <addr>", "dev/serve — bind address (dev: 127.0.0.1, serve: 0.0.0.0)"],
       ["-y, --yes", "dev — create a site if there are no docs, without asking"],
       ["-f, --force", "new — scaffold into a directory that isn't empty"],
       ["-h, --help", "Show this help"],
@@ -158,7 +177,7 @@ function printHelp() {
   // Worth saying on the help screen rather than only in the docs: `dev` executes the repo's
   // MDX, which is arbitrary JSX. Someone about to point it at a repo they cloned should see it.
   out.push(
-    `${dim("Note:")} ${dim("papervine dev compiles and runs the repo's MDX, which is arbitrary")}`,
+    `${dim("Note:")} ${dim("papervine compiles and runs the repo's MDX, which is arbitrary")}`,
   );
   out.push(`${dim("JSX/JavaScript. Only run it on docs repos you trust.")}`);
   out.push("");
@@ -403,13 +422,35 @@ async function resolvePort(start, explicit) {
   fail(`no free port in ${start}–${start + 9} — pass an explicit \`--port\`.`);
 }
 
-async function runDev(argv) {
+/**
+ * Run the server. `dev` and `serve` are the same server — the same prebuilt production app, with
+ * `NODE_ENV=production` and no dev-mode compile — differing in exactly two defaults:
+ *
+ *   - **Bind address.** `dev` binds loopback, because a command you run on your laptop has no
+ *     business being on the LAN by default. `serve` binds every interface, because being
+ *     reachable is the whole point of the word, and making the production command need an
+ *     environment variable to do its job is its own kind of footgun. Both print what they bound,
+ *     and `--host` / `PAPERVINE_HOST` override either way — pinning `serve` back to loopback is
+ *     the right move behind a reverse proxy.
+ *   - **The scaffold offer.** `dev` offers to create a starter site when there are no docs;
+ *     `serve` just fails, because a production server that invents content is worse than one
+ *     that stops.
+ *
+ * Two names rather than one because the name is the documentation: nobody should have to type
+ * `dev` on a box serving real traffic and learn from a README that it isn't a dev server.
+ *
+ * @param {string[]} argv
+ * @param {"dev" | "serve"} mode
+ */
+async function runServer(argv, mode) {
+  const serving = mode === "serve";
   let plan;
   try {
-    plan = parseDevArgs(argv, process.cwd());
+    plan = parseServerArgs(argv, process.cwd());
   } catch (err) {
     fail(`${err.message}\n  Run \`papervine --help\`.`);
   }
+  const host = resolveHost(plan, serving);
 
   if (plan.help) {
     printHelp();
@@ -421,13 +462,18 @@ async function runDev(argv) {
     exists: existsSync(plan.dir),
     isDirectory: existsSync(plan.dir) && statSync(plan.dir).isDirectory(),
     hasDocsJson: existsSync(path.join(plan.dir, "docs.json")),
+    command: mode,
   });
   if (problem) {
     // No docs yet is the one failure worth offering to fix rather than just reporting: someone
     // who typed the obvious command shouldn't have to discover that a second one exists. The
     // offer is gated on a TTY — in CI or a pipe, a prompt waiting on stdin that nobody can
     // answer is worse than the plain error, so those keep today's behaviour exactly.
+    // `serve` never scaffolds: inventing content on a box that is meant to be serving real
+    // traffic hides the actual problem (wrong path, unmounted volume) behind a site that looks
+    // fine and says nothing true.
     const emptyish =
+      !serving &&
       !existsSync(path.join(plan.dir, "docs.json")) &&
       (!existsSync(plan.dir) || readdirSync(plan.dir).every((n) => n.startsWith(".")));
 
@@ -463,7 +509,14 @@ async function runDev(argv) {
   const port = await resolvePort(plan.port, plan.portExplicit);
 
   console.log(`${brand("▲ papervine")} serving ${bold(plan.dir)}`);
-  console.log(`  ${dim("→")} ${brandLight(`http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${port}`)}\n`);
+  console.log(`  ${dim("→")} ${brandLight(`http://${host === "0.0.0.0" ? "localhost" : host}:${port}`)}`);
+  // Say it out loud. `serve` binding every interface is intended, but "intended" and "understood
+  // by the person who typed it" are different things, and this is the line that makes them one.
+  console.log(
+    host === "0.0.0.0"
+      ? `  ${dim(`bound to all interfaces (0.0.0.0:${port}) — reachable from your network`)}\n`
+      : `  ${dim(`bound to ${host} only`)}\n`,
+  );
 
   // Worth a line, not a failure: pages render fine either way, but anyone serving this for real
   // should know their images are going out at full size.
@@ -491,10 +544,10 @@ async function runDev(argv) {
       PAPERVINE_CONTENT: plan.dir,
       PORT: String(port),
       // `HOSTNAME` is how Next's standalone server takes its bind address, so it stays that
-      // name here — but it's set from our own `PAPERVINE_HOST` (see HOST above), never
+      // name here — but it's set from our own resolved host (see `resolveHost`), never
       // inherited. That's the whole point: an ambient HOSTNAME from Docker or a shell must not
       // reach the server, and an explicit HOSTNAME in the environment is overridden by this.
-      HOSTNAME: HOST,
+      HOSTNAME: host,
       NODE_ENV: "production",
     },
   });
@@ -541,7 +594,9 @@ const [, , command, ...rest] = process.argv;
 if (!command || command === "-h" || command === "--help" || command === "help") {
   printHelp();
 } else if (command === "dev") {
-  await runDev(rest);
+  await runServer(rest, "dev");
+} else if (command === "serve") {
+  await runServer(rest, "serve");
 } else if (command === "new") {
   runNew(rest);
 } else if (command === "-v" || command === "--version" || command === "version") {

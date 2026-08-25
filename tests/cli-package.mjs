@@ -25,6 +25,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -68,18 +69,27 @@ function sh(cmd, args, opts = {}) {
   return res.stdout.trim();
 }
 
-async function waitForReady(timeoutMs = 90_000) {
+/**
+ * Poll a server's home page until it answers 200.
+ *
+ * `base` comes first because there is now more than one server to wait for (`dev` and `serve`),
+ * and the previous signature took only a timeout — so passing a *port* to it silently became a
+ * 4-second timeout against the other server's URL, and reported "never became ready" while the
+ * log showed the server ready. An argument that plausibly type-checks as another is worth
+ * removing the ambiguity from.
+ */
+async function waitForReady(base = BASE, timeoutMs = 90_000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(BASE + "/", { signal: AbortSignal.timeout(10_000) });
+      const res = await fetch(base + "/", { signal: AbortSignal.timeout(10_000) });
       if (res.status === 200) return Date.now() - start;
     } catch {
       // not up yet
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  throw new Error("installed papervine did not become ready in time");
+  throw new Error(`installed papervine did not become ready in time (${base})`);
 }
 
 /**
@@ -420,7 +430,55 @@ async function run() {
     server.kill("SIGTERM");
   }
 
-  if (failures.length) log(`\n--- server output ---\n${serverLog}`);
+  // 6. `papervine serve` — the command a self-hosted deployment actually runs, so it gets
+  // clean-room coverage of its own. Pinned to loopback with `--host` rather than taking its
+  // 0.0.0.0 default: this is the flag a reverse-proxy deployment uses, and CI has no business
+  // opening a port on every interface. Also re-asserts that an ambient HOSTNAME is ignored,
+  // since `serve` is the command most likely to run in a container.
+  const servePort = PORT + 1;
+  log(`▶ serving via \`papervine serve --host 127.0.0.1\` on :${servePort}`);
+  const prodServer = spawn(
+    bin,
+    ["serve", DOCS, "-p", String(servePort), "--host", "127.0.0.1"],
+    {
+      cwd: consumer,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, HOSTNAME: "papervine-hostname-must-be-ignored.invalid" },
+    },
+  );
+  let prodLog = "";
+  prodServer.stdout.on("data", (d) => (prodLog += d));
+  prodServer.stderr.on("data", (d) => (prodLog += d));
+
+  try {
+    const before = failures.length;
+    await waitForReady(`http://127.0.0.1:${servePort}`);
+    const home = await fetch(`http://127.0.0.1:${servePort}/`);
+    if (!home.ok) failures.push(`\`serve\` home page: HTTP ${home.status}`);
+    if (!prodLog.includes("bound to 127.0.0.1")) {
+      // The line that tells an operator what they exposed. Silence here is how someone ends up
+      // unsure whether their docs are on the public internet.
+      failures.push("`serve` did not report its bind address");
+    }
+    log(`  ${failures.length === before ? "✓" : "✗"} \`serve\` boots, answers, and states its bind address`);
+  } catch (err) {
+    failures.push(`\`serve\` never became ready: ${err.message}`);
+  } finally {
+    prodServer.kill("SIGTERM");
+  }
+
+  // A production server must not invent content. `serve` on an empty directory has to fail,
+  // because a site that renders a scaffolded placeholder hides the actual fault — a wrong path
+  // or an unmounted volume.
+  const emptyDir = path.join(consumer, "empty-docs");
+  mkdirSync(emptyDir, { recursive: true });
+  const refusedServe = spawnSync(bin, ["serve", emptyDir], { encoding: "utf8" });
+  if (refusedServe.status === 0) {
+    failures.push("`papervine serve` scaffolded an empty directory instead of failing");
+  }
+  log(`  ${refusedServe.status === 0 ? "✗" : "✓"} \`serve\` refuses an empty directory`);
+
+  if (failures.length) log(`\n--- server output ---\n${serverLog}${prodLog}`);
 }
 
 // The guard rails: refuse to run against a missing docs repo, and always clean up.
