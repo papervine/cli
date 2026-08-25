@@ -55,11 +55,11 @@ export function TableOfContents({ items }: { items: TocItem[] }) {
   const ids = useMemo(() => items.map((i) => i.id), [items]);
   const active = useActiveHeading(ids);
 
-  if (items.length === 0) return <div className="hidden xl:block xl:w-56 xl:shrink-0" />;
+  if (items.length === 0) return <div className="hidden xl:block xl:w-[var(--db-toc-w)] xl:shrink-0" />;
   return (
     // `self-start` keeps the aside at its natural height (flex would otherwise
     // stretch it to the article's height, leaving `sticky` no room to move).
-    <aside className="sticky top-28 hidden max-h-[calc(100vh-8rem)] self-start overflow-y-auto xl:block xl:w-56 xl:shrink-0">
+    <aside className="sticky top-28 hidden max-h-[calc(100vh-8rem)] self-start overflow-y-auto xl:block xl:w-[var(--db-toc-w)] xl:shrink-0">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
         On this page
       </p>

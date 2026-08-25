@@ -21,7 +21,7 @@ const stringOrLightDark = z
 export const docsConfigSchema = z
   .object({
     name: z.string().catch("Docs"),
-    theme: z.string().optional().catch(undefined), // named preset — see src/lib/theme.ts
+    theme: z.string().optional().catch(undefined), // named preset — see ./theme.ts
     appearance: z
       .object({
         default: z.enum(["light", "dark", "system"]).optional(),

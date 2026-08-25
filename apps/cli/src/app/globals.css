@@ -11,8 +11,18 @@
      (@papervine/renderer/lib/theme). These are the fallbacks. */
   --db-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --db-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --db-font-display: var(--db-font-sans);
   --db-radius: 0.5rem;
   --db-radius-lg: 0.75rem;
+  --db-heading-weight: 600;
+  --db-heading-tracking: -0.02em;
+  --db-leading: 1.75;
+  --db-sidebar-w: 16rem;
+  --db-toc-w: 14rem;
+  --db-shell-w: 80rem;
+  --db-sidebar-border: 0px;
+  --db-label-transform: none;
+  --db-label-tracking: 0;
 }
 
 html {
@@ -27,19 +37,28 @@ body {
 
 /* --- Article prose (lightweight, no typography plugin) --- */
 .prose {
-  @apply text-[0.95rem] leading-7 text-zinc-700 dark:text-zinc-300;
+  line-height: var(--db-leading);
+  @apply text-[0.95rem] text-zinc-700 dark:text-zinc-300;
 }
 .prose > :first-child {
   @apply mt-0;
 }
 .prose h1 {
-  @apply mb-2 mt-0 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50;
+  font-family: var(--db-font-display);
+  font-weight: var(--db-heading-weight);
+  letter-spacing: var(--db-heading-tracking);
+  @apply mb-2 mt-0 text-3xl text-zinc-900 dark:text-zinc-50;
 }
 .prose h2 {
-  @apply mb-3 mt-10 border-b border-zinc-100 pb-2 text-xl font-semibold text-zinc-900 dark:border-zinc-800 dark:text-zinc-100;
+  font-family: var(--db-font-display);
+  font-weight: var(--db-heading-weight);
+  letter-spacing: var(--db-heading-tracking);
+  @apply mb-3 mt-10 border-b border-zinc-100 pb-2 text-xl text-zinc-900 dark:border-zinc-800 dark:text-zinc-100;
 }
 .prose h3 {
-  @apply mb-2 mt-8 text-lg font-semibold text-zinc-900 dark:text-zinc-100;
+  font-family: var(--db-font-display);
+  font-weight: var(--db-heading-weight);
+  @apply mb-2 mt-8 text-lg text-zinc-900 dark:text-zinc-100;
 }
 /* Heading anchors (rehype-autolink-headings wraps the text in an <a>) must keep
    the heading's own color and weight, not the link color. */

@@ -78,7 +78,7 @@ function TopGroup({ node }: { node: NavNode }) {
   if (!node.collapsible) {
     return (
       <>
-        <p className="mb-2 flex items-center gap-2 px-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        <p className="mb-2 flex items-center gap-2 px-3 text-sm font-semibold tracking-[var(--db-label-tracking)] text-zinc-900 [text-transform:var(--db-label-transform)] dark:text-zinc-100">
           {header}
         </p>
         <NodeList nodes={node.items} depth={1} />
@@ -91,7 +91,7 @@ function TopGroup({ node }: { node: NavNode }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="mb-2 flex w-full items-center justify-between px-3 text-sm font-semibold text-zinc-900 transition-colors hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-300"
+        className="mb-2 flex w-full items-center justify-between px-3 text-sm font-semibold tracking-[var(--db-label-tracking)] text-zinc-900 transition-colors [text-transform:var(--db-label-transform)] hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-300"
       >
         <span className="flex items-center gap-2">{header}</span>
         <ChevronRight className={clsx("h-4 w-4 text-zinc-400 transition-transform", open && "rotate-90")} />
@@ -163,7 +163,7 @@ export function Sidebar({ sections }: { sections: NavSection[] }) {
   // line up with the logo and tab nav, while the active pill (which extends to
   // this edge) stays inside the box — overflow-y-auto would otherwise clip it.
   return (
-    <nav className="sticky top-28 -ml-3 hidden h-[calc(100vh-7rem)] w-64 shrink-0 overflow-y-auto py-8 pr-4 md:block">
+    <nav className="sticky top-28 -ml-3 hidden h-[calc(100vh-7rem)] w-[var(--db-sidebar-w)] shrink-0 overflow-y-auto border-r-[length:var(--db-sidebar-border)] border-zinc-200 py-8 pr-4 dark:border-zinc-800 md:block">
       <NodeList nodes={active.nodes} />
     </nav>
   );

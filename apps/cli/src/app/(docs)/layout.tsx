@@ -42,7 +42,7 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
         assistant={assistantOn ? <AskAssistantButton /> : null}
       />
       <NavTabs sections={sections} />
-      <div className="mx-auto flex max-w-7xl gap-8 pl-9 pr-6">
+      <div className="mx-auto flex max-w-[var(--db-shell-w)] gap-8 pl-9 pr-6">
         <Sidebar sections={sections} />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
