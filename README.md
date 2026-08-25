@@ -4,9 +4,11 @@
 
 # Papervine
 
-**The Mintlify-compatible alternative — open-source MDX documentation.**
+**"AI writes the docs, and the docs teach the AI how to write" - John Archibald Wheeler**
 
-Point it at a folder of MDX and a `docs.json`. It's a production build of the same renderer behind Papervine's hosted sites — use it to preview while you write, and to serve the finished site for real.
+***The Mintlify-compatible alternative — open-source MDX documentation.***
+
+Point it at a folder of MDX and a `docs.json`. Profit.
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
@@ -323,7 +325,13 @@ http://localhost:3000/mcp
 | `search_api` | Search OpenAPI operations — registered only when your `docs.json` references a spec |
 
 Because it reads from disk per request like every other route, an edit is visible to the next tool
-call. On a deployed site this is the endpoint that makes your docs usable by other people's
+call.
+
+> [!WARNING]
+> The CLI has no reader authentication, so this server applies **no gate**: `list_pages` returns
+> every page, including any marked `groups: [...]` in frontmatter. Self-hosting a repo with gated
+> pages makes them enumerable in one request.
+ On a deployed site this is the endpoint that makes your docs usable by other people's
 agents; see the [self-hosting guide](https://docs.papervine.io/guides/self-hosting).
 
 ### Output
