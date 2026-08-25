@@ -10,7 +10,7 @@ Point it at a folder of MDX and a `docs.json`. It's a production build of the sa
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Production](#serving-it-in-production) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#serving-it-in-production) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -159,6 +159,24 @@ control, no analytics — the reader-authentication, multi-tenant hosting and us
 that [papervine.io](https://papervine.io) provides are the control plane, and none of it is in
 this package. If those matter, that's what the hosted product is for; if they don't, a process
 and a reverse proxy is a complete deployment.
+
+The whole thing in a Dockerfile:
+
+```dockerfile
+FROM node:22-slim
+RUN npm i -g papervine
+COPY docs /docs
+ENV PAPERVINE_HOST=0.0.0.0
+EXPOSE 3000
+CMD ["papervine", "dev", "/docs", "--port", "3000"]
+```
+
+Mount your docs instead of copying them (`-v /srv/docs:/docs:ro`) and writing new MDX into that
+directory publishes it — no rebuild, no restart.
+
+**→ [Self-hosting guide](https://docs.papervine.io/guides/self-hosting)** — Docker, systemd,
+container platforms, nginx and Caddy configs, and what the hosted product does that this
+doesn't.
 
 ### Images
 
