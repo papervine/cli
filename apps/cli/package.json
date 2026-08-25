@@ -1,7 +1,7 @@
 {
   "name": "papervine",
   "version": "0.1.0",
-  "description": "Preview a docs site of MDX + docs.json locally. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
+  "description": "Serve a docs site of MDX + docs.json — locally or in production. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://github.com/papervine/cli#readme",

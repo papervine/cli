@@ -6,11 +6,11 @@
 
 **The Mintlify-compatible alternative — open-source MDX documentation.**
 
-Preview your docs locally with the same renderer that serves them in production. Point it at a folder of MDX and a `docs.json`.
+Point it at a folder of MDX and a `docs.json`. It's a production build of the same renderer behind Papervine's hosted sites — use it to preview while you write, and to serve the finished site for real.
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Production](#serving-it-in-production) · [AI assistant](#ai-assistant) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -69,12 +69,17 @@ containing only dotfiles (a fresh `git init`, say) count as empty.
 The template is bundled in the package, so `new` works offline and always matches the
 version of the CLI that wrote it.
 
-### Local preview
+### Serve a site
 
 #### `papervine dev [dir]`
 
 Serve the docs in `[dir]`, defaulting to the current directory. The directory must
 contain a `docs.json` at its root.
+
+Despite the name, this is not a development server. It runs a **production build** of the
+renderer with `NODE_ENV=production` — there is no dev-mode compile step and no HMR. The same
+command is what you use on your laptop and on a box serving real traffic; see
+[Serving it in production](#serving-it-in-production).
 
 ```
 papervine dev
@@ -121,12 +126,39 @@ explicit `--port` it fails instead of silently serving somewhere you didn't ask 
 **Editing**
 
 Pages are rendered per request, so saving an `.mdx` file and refreshing the browser
-shows the change. There is no hot reload — a refresh is the update.
+shows the change. There is no hot reload — a refresh is the update. (This is the same
+mechanism that lets a deployed site pick up new files without a restart.)
 
-By default the preview binds loopback (`127.0.0.1`) rather than every interface. Set
-`PAPERVINE_HOST=0.0.0.0` to reach it from outside the machine, e.g. from a container host.
-(`PAPERVINE_HOST`, not `HOSTNAME` — Docker and Kubernetes set `HOSTNAME` for their own
-reasons, and that shouldn't decide what your preview is reachable from.)
+#### Serving it in production
+
+The renderer here is the one behind Papervine's hosted sites, built the same way, so serving
+your own docs from it is a supported thing to do rather than a hack.
+
+**Bind an interface.** By default it binds loopback (`127.0.0.1`) rather than every interface,
+because a command you run on your laptop has no business being on the LAN by default. To serve
+traffic, set the host explicitly:
+
+```
+PAPERVINE_HOST=0.0.0.0 papervine dev ./docs --port 3000
+```
+
+(`PAPERVINE_HOST`, not `HOSTNAME` — Docker and Kubernetes set `HOSTNAME` for their own reasons,
+and that shouldn't decide what your site is reachable from.)
+
+**Terminate TLS in front of it.** There is no HTTPS here and no `Host` routing — run it behind
+nginx, Caddy, a cloud load balancer, or whatever already terminates certificates for you, and
+proxy to the port above.
+
+**Deploying an update is replacing files.** Pages are read from disk per request, so writing new
+MDX into the served directory publishes it — no rebuild, no restart. The expensive half of
+rendering (MDX compilation, syntax highlighting) is cached, so repeat requests don't recompile,
+and the search index is fingerprinted by content and rebuilt when the files change.
+
+**What it doesn't do.** One site per process, no built-in caching layer or CDN, no access
+control, no analytics — the reader-authentication, multi-tenant hosting and usage metering
+that [papervine.io](https://papervine.io) provides are the control plane, and none of it is in
+this package. If those matter, that's what the hosted product is for; if they don't, a process
+and a reverse proxy is a complete deployment.
 
 ### Images
 
@@ -253,12 +285,15 @@ So a docs page can't read your environment variables, touch your filesystem, or 
 commands — there's no server-side step where its code runs. Imports outside `/snippets/`
 and dynamic `import()` are refused entirely.
 
-It's still someone else's JavaScript in your browser on the preview's origin, which is
+It's still someone else's JavaScript in your browser on the server's origin, which is
 the trust you extend to any site you visit — so use normal judgement with an unfamiliar
 repo. But previewing one no longer hands it your machine.
 
-The previewer is narrow by construction: it binds loopback, serves only asset file types
-from your content directory, and refuses remote image URLs.
+The surface is narrow by construction: it binds loopback unless you say otherwise, serves
+only asset file types from your content directory, and refuses remote image URLs. That first
+default is the one you deliberately relax to
+[serve in production](#serving-it-in-production) — worth doing knowingly, since it's what
+takes the process from "reachable by me" to "reachable by the network".
 
 ### Roadmap
 

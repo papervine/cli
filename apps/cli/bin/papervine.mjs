@@ -70,7 +70,7 @@ function printHelp() {
 
   out.push(`${bold("Papervine CLI")}${v ? ` ${dim(`v${v}`)}` : ""}`);
   out.push("");
-  out.push(`${dim("Preview a docs site of MDX +")} ${brand("docs.json")} ${dim("on your machine.")}`);
+  out.push(`${dim("Serve a docs site of MDX +")} ${brand("docs.json")} ${dim("— locally or in production.")}`);
   out.push("");
 
   out.push(bold("EXAMPLES"));
@@ -88,7 +88,7 @@ function printHelp() {
   out.push(
     rows([
       ["new [dir]", "Create a documentation site (default: .)"],
-      ["dev [dir]", "Start a local preview of your site (default: .)"],
+      ["dev [dir]", "Serve your site — locally or in production (default: .)"],
     ]),
   );
   out.push("");
