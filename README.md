@@ -199,32 +199,84 @@ Ask questions about your docs and get answers with citations, from the same assi
 on hosted Papervine. It retrieves by searching and reading your pages — there is no index to
 build, no vector database, and nothing leaves your machine except the model call itself.
 
-It appears when a model is configured, and is simply absent when one isn't:
+It appears when a model is configured, and is simply absent when one isn't. You bring the model;
+the SDKs ship with the CLI.
+
+Put one of these in your docs project's `.env.local` (the CLI loads it) or export it before
+running. **The model id and the routing always travel together** — see the warning below.
+
+**Claude**
 
 ```
-export ANTHROPIC_API_KEY=sk-ant-...
-export AI_ROUTING=direct
-papervine dev
+AI_ROUTING=direct
+PAPERVINE_AI_MODEL=anthropic/claude-haiku-4-5
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-You bring the key; the SDKs ship with the CLI. To run it **free and entirely offline**, point it
-at any OpenAI-compatible server — [Ollama](https://ollama.com), LM Studio, llama.cpp:
+**ChatGPT**
 
 ```
-export PAPERVINE_AI_MODEL=ollama/qwen3.5
-export AI_BASE_URL=http://localhost:11434/v1
-papervine dev
+AI_ROUTING=direct
+PAPERVINE_AI_MODEL=openai/gpt-5-nano
+OPENAI_API_KEY=sk-...
 ```
+
+**Gemini** — note the variable name, which is neither `GOOGLE_API_KEY` nor `GEMINI_API_KEY`
+
+```
+AI_ROUTING=direct
+PAPERVINE_AI_MODEL=google/gemini-3.1-flash-lite
+GOOGLE_GENERATIVE_AI_API_KEY=...
+```
+
+**Vercel AI Gateway** — one key, nearly every provider
+
+```
+AI_ROUTING=gateway
+PAPERVINE_AI_MODEL=anthropic/claude-haiku-4-5
+AI_GATEWAY_API_KEY=...
+```
+
+**Free and entirely offline** — [Ollama](https://ollama.com), LM Studio, or any OpenAI-compatible
+server (vLLM, llama.cpp, LiteLLM, a remote GPU box). No key, and no `AI_ROUTING`: a local model
+always goes direct, because a hosted gateway can't reach your network.
+
+```
+PAPERVINE_AI_MODEL=ollama/qwen3.5        # defaults to http://localhost:11434/v1
+PAPERVINE_AI_MODEL=lmstudio/qwen3.5      # defaults to http://localhost:1234/v1
+PAPERVINE_AI_MODEL=local/qwen3.5         # anything else — AI_BASE_URL required
+AI_BASE_URL=http://gpu-box.lan:8000/v1
+```
+
+> [!WARNING]
+> A provider key on its own does nothing. `AI_ROUTING` defaults to `gateway`, so exporting
+> `OPENAI_API_KEY` and starting the server leaves the assistant **hidden** — it's looking for a
+> gateway key it hasn't got. And on the direct route the model prefix must match the key you set:
+> an `OPENAI_API_KEY` does not satisfy the default `anthropic/…` model.
 
 | Variable | Effect |
 | --- | --- |
-| `PAPERVINE_AI_MODEL` | Model id, e.g. `anthropic/claude-haiku-4-5` or `ollama/qwen3.5` |
-| `AI_ROUTING` | `direct` to call the provider with your own key |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_...` | Your key, for `direct` routing |
-| `AI_BASE_URL` | An OpenAI-compatible endpoint, for a local model |
+| `PAPERVINE_AI_MODEL` | `provider/model` id. Default `anthropic/claude-haiku-4-5` |
+| `AI_ROUTING` | `direct` (your own key) or `gateway` (default; via the Vercel AI Gateway) |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` | Key for the direct route |
+| `AI_GATEWAY_API_KEY` | Key for the gateway route |
+| `AI_BASE_URL` | Endpoint for a local model; required for `local/` |
+| `AI_LOCAL_API_KEY` | Only if your local server demands a key |
+| `AI_LOCAL_REASONING` | `1` to let a local thinking model think — off by default, because on a laptop it turned a 1.9s answer into a 40s one |
+
+If the assistant doesn't appear, ask the API why — it answers `503` with the reason:
+
+```
+curl -s -X POST localhost:3000/api/assistant \
+  -H 'content-type: application/json' -d '{"messages":[]}'
+```
+
+Small local models are less reliable at the multi-step tool use the assistant does, so expect
+weaker answers than a frontier model gives.
 
 <sub>Usage is billed by whoever provides the model — your key, your account. The CLI has no
-metering and reports nothing anywhere.</sub>
+metering and reports nothing anywhere. Full guide:
+<a href="https://docs.papervine.io/features/assistant-providers">Connecting a model</a>.</sub>
 
 ### Output
 
