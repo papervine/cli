@@ -42,6 +42,56 @@ const SERVER_ENTRY = path.join(PKG_ROOT, "server", "server.js");
 // business controlling network exposure.
 const HOST = process.env.PAPERVINE_HOST || "127.0.0.1";
 
+/**
+ * In a source checkout only: is the prebuilt server older than the sources it was built from?
+ *
+ * `dev` serves a *prebuilt* app, so editing the renderer changes nothing until it is rebuilt —
+ * and the symptom is silence, not an error. That has now cost two debugging sessions (a nav fix
+ * and a theme change, both "I changed it and see no difference"), so it gets a line rather than
+ * a lesson. A published package has no sources beside it and never reaches this.
+ *
+ * Returns the newest source mtime when the build is behind, else null.
+ */
+function staleBuildSince() {
+  const roots = [
+    path.join(PKG_ROOT, "..", "..", "packages", "renderer"),
+    path.join(PKG_ROOT, "src"),
+  ].filter((d) => existsSync(d));
+  if (roots.length === 0) return null; // installed package — nothing to be stale against
+
+  let built;
+  try {
+    built = statSync(SERVER_ENTRY).mtimeMs;
+  } catch {
+    return null;
+  }
+
+  let newest = 0;
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (/\.(ts|tsx|css|mjs|js)$/.test(e.name)) {
+        try {
+          newest = Math.max(newest, statSync(full).mtimeMs);
+        } catch {
+          /* raced with an edit; ignore */
+        }
+      }
+    }
+  };
+  for (const r of roots) walk(r);
+
+  return newest > built ? newest : null;
+}
+
 function fail(msg) {
   console.error(`${red("papervine:")} ${msg}`);
   process.exit(1);
@@ -421,6 +471,15 @@ async function runDev(argv) {
     console.log(
       `${yellow("!")} image optimization unavailable — serving images at original size.\n` +
         `  ${dim("Install the optional dependency with `npm i sharp` in this project.")}\n`,
+    );
+  }
+
+  // Contributor-only: the sources moved after this server was built, so what you are looking at
+  // is not what you just changed.
+  if (staleBuildSince()) {
+    console.log(
+      `${yellow("!")} this server was built before your latest renderer changes — it is serving the old build.\n` +
+        `  ${dim("Rebuild with `npm run prepack --workspace papervine`.")}\n`,
     );
   }
 
