@@ -153,7 +153,7 @@ export function Assistant({ site }: { site?: string }) {
   return (
     <div
       className={clsx(
-        "fixed bottom-0 right-0 top-0 z-50 flex flex-col border-l border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950",
+        "pv-no-print fixed bottom-0 right-0 top-0 z-50 flex flex-col border-l border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950",
         expanded ? "w-full md:w-[48rem]" : "w-full sm:w-[28rem]",
       )}
     >

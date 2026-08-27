@@ -57,7 +57,7 @@ export function Navbar({
   const primary = config.navbar?.primary;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+    <header className="pv-no-print sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
       {/* Padding on the max-w-7xl element itself (not a full-width wrapper) so the
           left edge matches the content row exactly at any viewport width. */}
       <div className="relative mx-auto flex h-16 max-w-7xl items-center gap-6 pl-9 pr-6">

@@ -163,7 +163,7 @@ export function Sidebar({ sections }: { sections: NavSection[] }) {
   // line up with the logo and tab nav, while the active pill (which extends to
   // this edge) stays inside the box — overflow-y-auto would otherwise clip it.
   return (
-    <nav className="sticky top-28 -ml-3 hidden h-[calc(100vh-7rem)] w-[var(--db-sidebar-w)] shrink-0 overflow-y-auto border-r-[length:var(--db-sidebar-border)] border-zinc-200 py-8 pr-4 dark:border-zinc-800 md:block">
+    <nav className="pv-no-print sticky top-28 -ml-3 hidden h-[calc(100vh-7rem)] w-[var(--db-sidebar-w)] shrink-0 overflow-y-auto border-r-[length:var(--db-sidebar-border)] border-zinc-200 py-8 pr-4 dark:border-zinc-800 md:block">
       <NodeList nodes={active.nodes} />
     </nav>
   );

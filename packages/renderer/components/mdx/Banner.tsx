@@ -54,7 +54,7 @@ export function Banner({
   return (
     <div
       className={clsx(
-        "not-prose relative w-full px-4 py-2 text-center text-sm font-medium",
+        "pv-no-print not-prose relative w-full px-4 py-2 text-center text-sm font-medium",
         !custom && (TYPES[type] ?? TYPES.info),
         custom && "text-white",
       )}

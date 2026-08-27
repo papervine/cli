@@ -19,7 +19,7 @@ export function NavTabs({ sections }: { sections: NavSection[] }) {
   const active = sections.find((s) => s.hrefs.includes(pathname)) ?? sections[0];
 
   return (
-    <nav className="sticky top-16 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <nav className="pv-no-print sticky top-16 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mx-auto flex max-w-7xl gap-6 pl-9 pr-6">
         {tabs.map((t) => {
           const isActive = t === active;
