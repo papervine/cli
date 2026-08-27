@@ -315,7 +315,9 @@ async function run() {
     // The prebuilt stylesheet and client chunks have to be in the tarball and served.
     // Missing them looks like a broken renderer, not a missing file — see prepack.
     const before = failures.length;
-    const home = await (await fetch(BASE + "/")).text();
+    // Kept as the response, not just its text: the llms.txt check below reads its headers.
+    const homeRes = await fetch(BASE + "/");
+    const home = await homeRes.text();
     const css = home.match(/\/_next\/static\/[^"]+\.css/)?.[0];
     if (!css) {
       failures.push("no stylesheet linked from / — prepack did not ship build/static");
@@ -494,6 +496,59 @@ async function run() {
     }
     log(
       `  ${failures.length === mcpBefore ? "✓" : "✗"} MCP server: initialize, ${toolNames.length} tools, search_docs returns hits`,
+    );
+
+    // The AI-discovery surfaces (SPEC §9.1): /llms.txt, /llms-full.txt, the .well-known
+    // aliases, and every page's `.md` twin. These need the clean room for two reasons that
+    // both bite silently. First, the generator lives in `packages/renderer` and the routes in
+    // `apps/cli` — a `packages/renderer` module the CLI's tsconfig doesn't resolve, or one
+    // dropped from the packed tree, 404s the whole surface. Second, the `.md` mapping lives in
+    // the CLI's **middleware**, and a middleware that doesn't ship makes every link in the
+    // index a dead link while the index itself still looks perfect.
+    const llmsBefore = failures.length;
+    const llmsRes = await fetch(BASE + "/llms.txt");
+    const llmsBody = llmsRes.ok ? await llmsRes.text() : "";
+    if (llmsRes.status !== 200) {
+      failures.push(`/llms.txt returned ${llmsRes.status} — the index did not ship`);
+    } else if (!llmsBody.startsWith("# ")) {
+      failures.push(`/llms.txt did not start with an H1: ${llmsBody.slice(0, 80)}`);
+    } else if (!llmsBody.includes(".md)")) {
+      failures.push(`/llms.txt links do not point at .md twins: ${llmsBody.slice(0, 200)}`);
+    }
+    for (const alias of ["/.well-known/llms.txt", "/.well-known/llms-full.txt", "/llms-full.txt"]) {
+      const res = await fetch(BASE + alias);
+      if (res.status !== 200) failures.push(`${alias} returned ${res.status}`);
+    }
+
+    // Follow a link out of the index rather than guessing a path — the docs repo under test
+    // varies (this file is mirrored to a repo with a different example site).
+    const linked = llmsBody.match(/\]\((https?:\/\/[^)]+\.md)\)/)?.[1];
+    if (!linked) {
+      failures.push("/llms.txt contained no .md link to follow");
+    } else {
+      const mdRes = await fetch(linked);
+      const md = mdRes.ok ? await mdRes.text() : "";
+      if (mdRes.status !== 200) {
+        failures.push(`${linked} returned ${mdRes.status} — the .md rewrite did not ship`);
+      } else if (!(mdRes.headers.get("content-type") ?? "").includes("text/markdown")) {
+        failures.push(`${linked} served "${mdRes.headers.get("content-type")}", expected text/markdown`);
+      } else if (/<!DOCTYPE/i.test(md)) {
+        failures.push(`${linked} served the rendered page, not Markdown`);
+      } else if (!md.startsWith("# ")) {
+        failures.push(`${linked} did not start with an H1 title: ${md.slice(0, 80)}`);
+      }
+    }
+    // A missing page's twin must 404 like the page does, not 500.
+    const mdMiss = await fetch(BASE + "/definitely-not-a-page.md");
+    if (mdMiss.status !== 404) {
+      failures.push(`a missing page's .md returned ${mdMiss.status}, expected 404`);
+    }
+    // And a page response has to advertise the index, or nothing points a client at it.
+    if (homeRes.headers.get("x-llms-txt") !== "/llms.txt") {
+      failures.push("the home page does not advertise x-llms-txt — the middleware header did not ship");
+    }
+    log(
+      `  ${failures.length === llmsBefore ? "✓" : "✗"} llms.txt + .well-known + .md twins served (followed ${linked ?? "nothing"})`,
     );
   } catch (e) {
     // Boot failures are the interesting ones and the server's own output is the only

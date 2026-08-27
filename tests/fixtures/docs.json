@@ -1,6 +1,10 @@
 {
   "$schema": "https://papervine.io/schema.json",
   "name": "Fixtures",
+  "description": "LLMS_SUMMARY_MARKER — the docs.json description, rendered as llms.txt's blockquote.",
+  "markdown": {
+    "instructions": "LLMS_INSTRUCTIONS_MARKER"
+  },
   "favicon": {
     "light": "/favicon.ico",
     "dark": "/favicon.ico"
@@ -14,7 +18,8 @@
   "seo": {
     "metatags": {
       "twitter:site": "@SITEWIDE_HANDLE"
-    }
+    },
+    "indexing": "all"
   },
   "navigation": {
     "languages": [
@@ -45,7 +50,8 @@
                   "mermaid",
                   "author-code",
                   "author-violation",
-                  "social"
+                  "social",
+                  "llms-noindex"
                 ]
               }
             ]

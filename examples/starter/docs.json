@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Papervine Starter",
+  "description": "A starter docs site for Papervine — fork it to begin, or read it as a tour of every component the renderer supports.",
   "favicon": "/favicon.svg",
   "logo": {
     "light": "/logo/light.svg",

@@ -21,6 +21,18 @@ const stringOrLightDark = z
 export const docsConfigSchema = z
   .object({
     name: z.string().catch("Docs"),
+    // One-line summary of the whole site. Rendered as the blockquote under the H1 in
+    // /llms.txt (SPEC §9.1) — the first thing an AI client reads to decide what these docs
+    // are. Not shown in the UI chrome, so a missing value costs nothing.
+    description: z.string().optional().catch(undefined),
+    // `markdown.instructions` — free-form guidance for AI clients, emitted verbatim into
+    // /llms.txt after the summary. The site owner's chance to tell an agent how to use these
+    // docs ("cite the version you read", "the v2 pages supersede v1").
+    markdown: z
+      .object({ instructions: z.string().optional().catch(undefined) })
+      .passthrough()
+      .optional()
+      .catch(undefined),
     theme: z.string().optional().catch(undefined), // named preset — see ./theme.ts
     appearance: z
       .object({
@@ -83,8 +95,8 @@ export type DocsConfig = z.infer<typeof docsConfigSchema>;
 
 /** Top-level keys Papervine actively understands; others are passed through but flagged. */
 const KNOWN_KEYS = new Set([
-  "$schema", "name", "theme", "appearance", "logo", "favicon", "colors",
-  "navigation", "navbar", "footer", "seo",
+  "$schema", "name", "description", "theme", "appearance", "logo", "favicon", "colors",
+  "navigation", "navbar", "footer", "seo", "markdown",
   // Reader-auth gating (SPEC §11.2) is configured in the dashboard, not docs.json, but
   // representative docs repos may still carry an `authentication` block — pass it through
   // without a noisy warning.

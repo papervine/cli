@@ -1,0 +1,14 @@
+---
+title: LLMS_NOINDEX_MARKER
+description: A navigable page with noindex — must not appear in llms.txt.
+noindex: true
+---
+
+This page **is** in the navigation, unlike `search-noindex.mdx`, and carries
+`noindex: true`. It exists so the AI-discovery feed's exclusion is asserted on the
+*nav* path, not only on the `seo.indexing: "all"` path: `noindex` is the page-level
+opt-out, and a page that opts out of search and SEO must also stay out of
+`/llms.txt` and `/llms-full.txt`.
+
+It still renders as a page — `noindex` withholds a page from indexes, it doesn't
+unpublish it.
