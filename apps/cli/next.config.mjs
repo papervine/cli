@@ -21,7 +21,13 @@ const nextConfig = {
   // Not `.next`: the repo gitignores `.next/` at any depth, and npm's packlist has
   // historically been inconsistent about whether a `files` entry beats a gitignore
   // rule. A distinct dist dir keeps the packed output unambiguous.
-  distDir: "build",
+  //
+  // That reasoning is about *packing*, and on Vercel nothing is packed — so it flips with
+  // `output` above. Vercel's Next builder looks for `.next` by name after the build and fails
+  // with "The Next.js output directory \".next\" was not found" if it isn't there, which is
+  // exactly what a first deploy hit: every route compiled, then the platform couldn't collect
+  // the result. Local trace inspection can't catch that class of bug; only a real deploy can.
+  distDir: process.env.VERCEL ? ".next" : "build",
   // Vercel's tracer can't see the docs folder: `lib/content.ts` resolves it from
   // `PAPERVINE_CONTENT` at runtime (see the note below), so nothing statically references
   // those files and a serverless function would ship without them. The whole-project fallback
