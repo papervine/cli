@@ -12,11 +12,35 @@ const nextConfig = {
   // imports and copies a pruned node_modules alongside the server, so the runtime
   // externals below travel with it and the published package needs no runtime
   // dependencies at all.
-  output: "standalone",
+  //
+  // On Vercel, that inverts: the platform builds its own serverless output and standalone is
+  // the wrong shape, so `VERCEL` (which Vercel sets on every build) drops back to the default.
+  // The same app source therefore serves both the npm tarball and a Deploy-to-Vercel clone —
+  // verified by building both ways and serving the starter from each.
+  output: process.env.VERCEL ? undefined : "standalone",
   // Not `.next`: the repo gitignores `.next/` at any depth, and npm's packlist has
   // historically been inconsistent about whether a `files` entry beats a gitignore
   // rule. A distinct dist dir keeps the packed output unambiguous.
   distDir: "build",
+  // Vercel's tracer can't see the docs folder: `lib/content.ts` resolves it from
+  // `PAPERVINE_CONTENT` at runtime (see the note below), so nothing statically references
+  // those files and a serverless function would ship without them. The whole-project fallback
+  // happens to include them today, which means it works by accident — stating the include
+  // makes it deliberate, and survives the day that fallback gets smarter.
+  //
+  // Enumerated by extension rather than `**`, and that is not fussiness: a bare `**` traced
+  // `examples/starter/.env.local` into every route's bundle. That file is gitignored, so a
+  // Deploy-button clone never has one — but anyone deploying from their own checkout would
+  // have uploaded their API keys into the deployment, silently. Same shape as the key that
+  // reached `apps/cli/template/` earlier: a copy-everything rule over a directory a human
+  // keeps secrets in. Content types only; no dotfiles.
+  outputFileTracingIncludes: {
+    "/**": [
+      "../../examples/starter/**/*.{mdx,md,json}",
+      "../../examples/starter/**/*.{svg,png,jpg,jpeg,gif,webp,avif,ico}",
+      "../../examples/starter/**/*.{yaml,yml,txt}",
+    ],
+  },
   // Tracing must start at the monorepo root or the workspace-linked renderer (and
   // the hoisted node_modules it resolves through) is missed entirely.
   outputFileTracingRoot: path.join(APP_DIR, "..", ".."),

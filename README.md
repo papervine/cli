@@ -12,7 +12,7 @@ Point it at a folder of MDX and a `docs.json`. Profit.
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -156,6 +156,25 @@ Two things differ from `dev`, and nothing else does:
 - **It never scaffolds.** `dev` offers to create a starter site when it finds no `docs.json`;
   `serve` fails, because a production server that invents content hides the real problem — a
   wrong path, an unmounted volume.
+
+#### Deploy it to Vercel
+
+The CLI is an ordinary Next.js app underneath, so the same source that serves your laptop also
+deploys as a hosted site. One click forks the repo and builds it:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fcli&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
+
+You get the [starter site](https://github.com/papervine/starter) live on a URL, which is then
+yours to edit — replace `examples/starter` with your own MDX and `docs.json`, or point
+`PAPERVINE_CONTENT` at a different folder in your fork.
+
+The button targets `apps/cli` as the Root Directory; `apps/cli/vercel.json` supplies the rest.
+`output: "standalone"` is skipped on Vercel (it exists to make the npm tarball relocatable), so
+Vercel builds its own serverless output from the same code.
+
+<sub>Every page renders per request, so a deployed site does a function invocation per view with
+no caching — correct, but not as fast as a static build. Static export (`papervine build`) is on
+the roadmap and is the better answer for a high-traffic site.</sub>
 
 #### Serving it in production
 

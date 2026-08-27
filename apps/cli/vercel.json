@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build --workspace papervine",
+  "env": {
+    "PAPERVINE_CONTENT": "../../examples/starter"
+  },
+  "build": {
+    "env": {
+      "PAPERVINE_CONTENT": "../../examples/starter"
+    }
+  }
+}
