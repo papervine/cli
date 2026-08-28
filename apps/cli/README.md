@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/logo.png" width="120" height="120" alt="Papervine" />
+<img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/logo.png" width="120" height="120" alt="Papervine" />
 
 # Papervine
 
@@ -16,7 +16,7 @@ Point it at a folder of MDX and a `docs.json`. Profit.
 
 [Quickstart](#quickstart) · [Commands](#create-a-site) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
-<img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
+<img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
 </div>
 
@@ -247,7 +247,7 @@ build, no vector database, and nothing leaves your machine except the model call
 It appears when a model is configured, and is simply absent when one isn't. You bring the model;
 the SDKs ship with the CLI.
 
-<img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/assistant.png" width="900" alt="The assistant panel open beside a docs page, introducing itself as the documentation assistant for the site and inviting a question" />
+<img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/assistant.png" width="900" alt="The assistant panel open beside a docs page, introducing itself as the documentation assistant for the site and inviting a question" />
 
 Put one of these in your docs project's `.env.local` (the CLI loads it) or export it before
 running. **The model id and the routing always travel together** — see the warning below.
@@ -380,7 +380,7 @@ previewer needs, so they are absent from the package rather than disabled at run
 parameters, schemas, a language-tabbed request sample and a **Try it** console that calls the real
 API from the browser. Point `docs.json` at a spec and the pages exist; there is nothing to write.
 
-<img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/api-reference.png" width="900" alt="A generated API reference page: endpoint list in the sidebar with HTTP method badges, query parameters and response schema in the centre, and a tabbed cURL/JavaScript/Python request sample with a Try it button" />
+<img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/api-reference.png" width="900" alt="A generated API reference page: endpoint list in the sidebar with HTTP method badges, query parameters and response schema in the centre, and a tabbed cURL/JavaScript/Python request sample with a Try it button" />
 
 The renderer has no runtime dependencies — it is compiled in. The one thing npm installs
 alongside it is [`sharp`](#images), an optional dependency for image optimization.
@@ -389,7 +389,7 @@ alongside it is [`sharp`](#images), an optional dependency for image optimizatio
 in-memory index built over your pages. It's built at startup and rebuilt in the background when
 you edit a file, so searching doesn't wait on it.
 
-<img src="https://raw.githubusercontent.com/papervine/cli/main/apps/cli/assets/search.png" width="900" alt="The search palette open over a docs page, showing ranked results with their section breadcrumb and a matching excerpt from each page" />
+<img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/search.png" width="900" alt="The search palette open over a docs page, showing ranked results with their section breadcrumb and a matching excerpt from each page" />
 
 **The AI assistant is included too**, and appears once you configure a model — see below. So is
 an [MCP server](#mcp-server) at `/mcp`, which needs no configuration at all.
@@ -459,6 +459,6 @@ takes the process from "reachable by me" to "reachable by the network".
 ### Get started
 
 Docs at [docs.papervine.io](https://docs.papervine.io) · source and issues at
-[github.com/papervine/cli](https://github.com/papervine/cli).
+[github.com/papervine/papervine](https://github.com/papervine/papervine).
 
 MIT licensed.

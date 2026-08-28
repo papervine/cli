@@ -43,7 +43,7 @@ const PORT = Number(process.env.CLI_PKG_PORT ?? 4181);
 // while the server listens on IPv4, so requests never connect.
 const BASE = `http://127.0.0.1:${PORT}`;
 // The docs repo we serve: Papervine's own docs, which is also the crawl fixture.
-// Overridable because this same file is mirrored into the public `papervine/cli` repo
+// Overridable because this same file is mirrored into the public `papervine/papervine` repo
 // (scripts/mirror-cli.mjs), which has no `docs/` — it points this at examples/starter.
 const DOCS = path.resolve(REPO, process.env.CLI_PKG_DOCS ?? "docs");
 

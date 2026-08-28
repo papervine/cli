@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "description": "Serve a docs site of MDX + docs.json — locally or in production. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
-  "license": "MIT",
-  "homepage": "https://github.com/papervine/cli#readme",
+  "license": "Elastic-2.0",
+  "homepage": "https://github.com/papervine/papervine#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/papervine/cli.git"
+    "url": "git+https://github.com/papervine/papervine.git"
   },
   "bugs": {
-    "url": "https://github.com/papervine/cli/issues"
+    "url": "https://github.com/papervine/papervine/issues"
   },
   "workspaces": [
     "packages/*",

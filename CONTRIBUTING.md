@@ -7,8 +7,8 @@ how they land that's worth knowing before you spend time on a change.
 
 Papervine is developed in a private monorepo, because the CLI and the renderer share
 code with a hosted product that isn't open source. This repository is a **generated
-mirror** of the open-source half: the `papervine` CLI and the render engine it's built
-from, published under MIT.
+mirror** of the public half: the `papervine` CLI and the render engine it's built from,
+published under the Elastic License 2.0.
 
 The practical consequence:
 
@@ -27,7 +27,7 @@ contributions become regular.
 ## Making a change
 
 ```bash
-git clone https://github.com/papervine/cli
+git clone https://github.com/papervine/papervine
 cd cli
 npm install
 ```
@@ -83,5 +83,5 @@ Please don't open a public issue for a security problem. Email
 
 ## License
 
-By contributing you agree that your contribution is licensed under the MIT License, the
-same as the rest of this repository.
+By contributing you agree that your contribution is licensed under the Elastic License 2.0,
+the same as the rest of this repository.
