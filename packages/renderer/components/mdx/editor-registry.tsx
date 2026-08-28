@@ -30,6 +30,12 @@ export { Mermaid };
 // styling instead of a copy of its classes).
 export { Steps, Step };
 
+// Same reason: <Accordion> takes the editor's title field (and the row's controls) as its `title`,
+// and is driven open/closed from outside — see its `open`/`onToggle`/`keepMounted` props — so the
+// editing surface is the published component rather than a lookalike of it. <AccordionGroup> is
+// exported alongside it because it's the half that draws the list's border.
+export { Accordion, AccordionGroup };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const editorComponents: Record<string, ComponentType<any>> = {
   Note,
