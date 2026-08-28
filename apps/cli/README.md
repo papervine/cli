@@ -10,7 +10,7 @@
 
 Point it at a folder of MDX and a `docs.json`. Profit.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fcli&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fpapervine&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
@@ -164,7 +164,7 @@ Two things differ from `dev`, and nothing else does:
 The CLI is an ordinary Next.js app underneath, so the same source that serves your laptop also
 deploys as a hosted site. One click forks the repo and builds it:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fcli&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fpapervine&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
 
 You get the [starter site](https://github.com/papervine/starter) live on a URL, which is then
 yours to edit — replace `examples/starter` with your own MDX and `docs.json`, or point
