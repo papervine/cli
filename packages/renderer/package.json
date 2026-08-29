@@ -4,7 +4,7 @@
   "description": "Papervine renderer-core \u2014 MDX + docs.json rendering, shared by the CLI and the hosted app. Internal: not published to npm.",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "homepage": "https://github.com/papervine/papervine#readme",
   "repository": {
     "type": "git",

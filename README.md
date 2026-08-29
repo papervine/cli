@@ -12,7 +12,7 @@ Point it at a folder of MDX and a `docs.json`. Profit.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fpapervine%2Fpapervine&root-directory=apps%2Fcli&project-name=papervine-docs&repository-name=papervine-docs)
 
-[![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-MIT-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
+[![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-Elastic%20v2-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
 [Quickstart](#quickstart) · [Commands](#create-a-site) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
@@ -461,4 +461,6 @@ takes the process from "reachable by me" to "reachable by the network".
 Docs at [docs.papervine.io](https://docs.papervine.io) · source and issues at
 [github.com/papervine/papervine](https://github.com/papervine/papervine).
 
-MIT licensed.
+Licensed under the [Elastic License 2.0](./LICENSE) — source-available: use it, change it,
+self-host it, ship docs with it. The one restriction is offering Papervine itself to third
+parties as a hosted or managed docs service.
