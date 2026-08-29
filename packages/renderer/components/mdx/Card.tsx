@@ -9,7 +9,10 @@ export function Card({
   href,
   children,
 }: {
-  title?: string;
+  // ReactNode, not string: the Visual editor passes a field for the title and a button for the
+  // icon, so a card is edited as the card readers see (see CardNodeView). A string still renders
+  // exactly as it did.
+  title?: ReactNode;
   icon?: ReactNode;
   href?: string;
   children?: ReactNode;
@@ -21,7 +24,14 @@ export function Card({
         href && "hover:border-primary hover:shadow-sm",
       )}
     >
-      {icon && <LucideIcon name={icon} className="mb-3 h-6 w-6 text-primary" />}
+      {icon &&
+        (typeof icon === "string" ? (
+          <LucideIcon name={icon} className="mb-3 h-6 w-6 text-primary" />
+        ) : (
+          // A node fills the slot itself — the icon box is 24px, which is the wrong size for
+          // anything but an svg.
+          <div className="mb-3">{icon}</div>
+        ))}
       {title && <h3 className="m-0 text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>}
       {children && <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400 [&>p]:my-0">{children}</div>}
     </div>

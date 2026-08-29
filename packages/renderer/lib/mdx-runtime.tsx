@@ -206,7 +206,19 @@ export function applyTenantUrls(
     const Comp = out[name] as any;
     if (!Comp) continue;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    out[name] = (props: any) => <Comp {...rewrite(props)} />;
+    const Wrapped = (props: any) => <Comp {...rewrite(props)} />;
+    // A NAMESPACE component carries its members as static properties — `Color.Item`,
+    // `Tree.Folder`, `GitHub.Repo` — and a plain wrapper function has none of them. MDX compiles
+    // `<Color.Item>` to a `components.Color.Item` lookup and throws "Expected component
+    // `Color.Item` to be defined" when it's missing, which took the whole page down.
+    //
+    // It only ever broke where a base is SET, since that's the only branch that wraps: the draft
+    // preview and path-based serving (`/sites/{slug}`). On a tenant host the map passes through
+    // untouched, which is why every fixture and every crawl rendered a `<Tree>` perfectly while
+    // the same page 500'd in Preview. The members are copied across unwrapped on purpose —
+    // `rewrite` only touches `href`/`src`, and no namespace member takes either.
+    Object.assign(Wrapped, Comp);
+    out[name] = Wrapped;
   }
   out.a = ({ href, ...rest }: ComponentProps<"a">) => <a href={withBase(href, linkBase)} {...rest} />;
 
