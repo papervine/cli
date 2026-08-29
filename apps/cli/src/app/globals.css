@@ -83,6 +83,32 @@ body {
 .prose ol {
   @apply my-4 list-decimal space-y-1 pl-6;
 }
+/* GFM task lists. `remark-gfm` renders `- [ ] x` as `<li class="task-list-item"><input …>`, and
+   without these rules the list marker stays: every item reads as bullet, then checkbox, then text.
+   The checkbox goes in the marker gutter instead, so a task item's text lines up with a plain
+   bullet's in a list that mixes the two — the same shape the Visual editor draws (platform.css),
+   which is what keeps Studio honest about the published page. */
+.prose li.task-list-item {
+  @apply relative list-none;
+}
+.prose li.task-list-item > input[type="checkbox"] {
+  @apply absolute m-0 h-[0.95em] w-[0.95em];
+  left: -1.45em;
+  top: 0.32em;
+  accent-color: var(--color-primary);
+  /* Paint for the DOCS theme, not the platform's. `color-scheme: dark` is set on <html> for the
+     platform shell, and a docs page shares that element — so a native control on a light docs page
+     was being painted dark by the UA (the two-theme-systems gotcha, from the other side). */
+  color-scheme: light;
+}
+.dark .prose li.task-list-item > input[type="checkbox"] {
+  color-scheme: dark;
+}
+/* A finished item reads as finished — the same muted strike the editor shows, rather than a page
+   where the only difference between done and not is a tick you have to look for. */
+.prose li.task-list-item:has(> input:checked) {
+  @apply text-zinc-500 line-through dark:text-zinc-400;
+}
 .prose blockquote {
   @apply my-4 border-l-4 border-zinc-200 pl-4 italic text-zinc-600 dark:border-zinc-700 dark:text-zinc-400;
 }
