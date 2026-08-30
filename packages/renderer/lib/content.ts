@@ -58,6 +58,11 @@ export type ContentSource = {
   // synced tenant (s3Source → storage); reading the filesystem directly only ever worked for
   // the former. Optional so lightweight sources (test mocks) can omit it.
   loadRaw?(relPath: string): Promise<string | null>;
+  // List the docs-root-relative paths under a prefix — today, discovering the `SKILL.md` files
+  // in `.papervine/skills/*/`, which have no fixed names to `loadRaw` directly. Optional for the
+  // same reason `loadRaw` is: a lightweight source (a test mock, a draft preview) omits it and
+  // the caller degrades to what it can address by name.
+  listRaw?(prefix: string): Promise<string[]>;
   // Optional: a source that can't supply dimensions (e.g. a draft/preview) just omits it,
   // and every image falls back to a plain lazy <img>.
   loadAssetDimensions?(): Promise<AssetDimensions>;
@@ -67,6 +72,25 @@ export const contentContext = new AsyncLocalStorage<ContentSource>();
 
 /** Page file extensions we serve, in resolution priority order. hosted docs platforms ships both. */
 export const PAGE_EXTS = [".mdx", ".md"];
+
+/**
+ * Whether a docs-relative slug is a PAGE, as opposed to a Markdown file that lives in the docs
+ * tree for some other purpose.
+ *
+ * Two exclusions today, both `skill.md` (SPEC §9.1): the root file, which is served at
+ * `/skill.md` as an agent surface, and anything under a dot-directory, which is where multiple
+ * skills live. Without this they'd render as ordinary docs pages, appear in the nav's "unlisted
+ * pages" menu, and be dumped into `llms.txt` as content — a capability summary indexed as if it
+ * were documentation. fsSource already skips dot-entries while walking; this is what makes the
+ * storage-backed source agree with it.
+ *
+ * It guards `loadPage` as well as the listing, and it has to: filtering only the listing leaves
+ * `/skill` rendering the file as a page for anyone who types the URL — invisible in the nav and
+ * absent from llms.txt, but a live page all the same.
+ */
+export function isPageSlug(slug: string): boolean {
+  return slug !== "skill" && !slug.startsWith(".");
+}
 
 /** Raster image extensions we measure for next/image — mirrors the sync-side RASTER_IMAGE_EXT
  *  (gif/svg excluded: animation preserved / no raster dims). Kept here too so the renderer
@@ -114,6 +138,7 @@ export function fsSource(dir: string): ContentSource {
       return config;
     },
     async loadPage(slug) {
+      if (!isPageSlug(slug === "" ? "" : slug)) return null;
       const file = await resolveSlugToFile(slug);
       if (!file) return null;
       return parsePage(slug, await fs.readFile(file, "utf8"));
@@ -127,6 +152,28 @@ export function fsSource(dir: string): ContentSource {
         return null;
       }
     },
+    async listRaw(prefix) {
+      // Walks the prefix directly rather than the whole tree: the caller wants one directory,
+      // and the page walk above deliberately skips the dot-directories skills live in.
+      const want = prefix.replace(/^\//, "");
+      const base = path.join(CONTENT_DIR, want);
+      const found: string[] = [];
+      async function walkAll(dir: string, rel: string) {
+        let entries;
+        try {
+          entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch {
+          return; // absent directory — no skills, not an error
+        }
+        for (const entry of entries) {
+          const next = rel ? `${rel}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) await walkAll(path.join(dir, entry.name), next);
+          else found.push(`${want}${next}`);
+        }
+      }
+      await walkAll(base, "");
+      return found;
+    },
     async listPageSlugs() {
       const slugs: string[] = [];
       async function walk(dir: string) {
@@ -137,7 +184,8 @@ export function fsSource(dir: string): ContentSource {
           if (entry.isDirectory()) await walk(full);
           else if (PAGE_EXTS.some((ext) => entry.name.endsWith(ext))) {
             const rel = path.relative(CONTENT_DIR, full).replace(/\.mdx?$/, "");
-            slugs.push(rel === "index" ? "" : rel);
+            const slug = rel === "index" ? "" : rel;
+            if (isPageSlug(slug)) slugs.push(slug);
           }
         }
       }
@@ -187,6 +235,9 @@ export const loadPage = cache((slug: string): Promise<Page | null> => source().l
 export const listPageSlugs = cache((): Promise<string[]> => source().listPageSlugs());
 export const loadRaw = cache(
   (relPath: string): Promise<string | null> => source().loadRaw?.(relPath) ?? Promise.resolve(null),
+);
+export const listRaw = cache(
+  (prefix: string): Promise<string[]> => source().listRaw?.(prefix) ?? Promise.resolve([]),
 );
 export const loadAssetDimensions = cache(
   (): Promise<AssetDimensions> => source().loadAssetDimensions?.() ?? Promise.resolve({}),
