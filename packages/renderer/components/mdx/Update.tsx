@@ -44,14 +44,24 @@ export function Update({
       className="mb-8 grid gap-4 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:grid-cols-[10rem_1fr] md:items-start"
     >
       <div className="not-prose md:sticky md:top-24">
+        {/* The label is a CHIP, not a line of text: a changelog is scanned down its left edge, and a
+            filled pill gives the eye a rail to run along that plain bold text doesn't. It stays a
+            real anchor — the chip is what you copy the link from. Emerald rather than the theme's
+            primary: a release marker reading as "new" is the convention here, and it keeps its
+            meaning on a site whose primary colour is doing other work. */}
         <a
           href={`#${id}`}
-          className="card-link text-sm font-semibold text-zinc-900 hover:text-primary dark:text-zinc-100"
+          // `card-link` resets the inherited `.prose a` underline; the colour needs `!` on top of
+          // it, because `.prose a.card-link` sets `text-inherit` and a two-class selector outranks
+          // a utility. Same shape as Prompt's chip link, for the same reason.
+          className="card-link inline-block rounded-md bg-emerald-50 px-2.5 py-1 text-sm font-medium !text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-500/10 dark:!text-emerald-400 dark:hover:bg-emerald-500/20"
         >
           {label}
         </a>
         {description && (
-          <div className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{description}</div>
+          // Slightly more room than before: the chip has its own padding, so `mt-1` read as
+          // touching it.
+          <div className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{description}</div>
         )}
         {tags && tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
