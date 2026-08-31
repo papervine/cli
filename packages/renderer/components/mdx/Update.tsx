@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 
 import { Badge } from "./Badge";
 
@@ -26,6 +26,15 @@ export function Update({
   rss?: unknown;
   children?: ReactNode;
 }) {
+  // The entry's title is the author's own first heading, so the description has to be placed
+  // relative to it rather than emitted in a fixed slot — see the content column below.
+  const kids = Children.toArray(children);
+  const startsWithHeading =
+    isValidElement(kids[0]) && typeof kids[0].type === "string" && /^h[1-6]$/.test(kids[0].type);
+  const descriptionLine = description ? (
+    <p className="mt-2 text-zinc-500 dark:text-zinc-400">{description}</p>
+  ) : null;
+
   const id = label
     ?.toLowerCase()
     .replace(/[^\w\s-]/g, "")
@@ -41,7 +50,12 @@ export function Update({
       // can't match — every entry drew a top rule, leaving a stray line and an empty band
       // under the heading. `first:`/`last:` are unreliable for any MDX component for the
       // same reason.
-      className="mb-8 grid gap-4 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:grid-cols-[10rem_1fr] md:items-start"
+      // `items-baseline` is what puts the label chip on the TITLE's line rather than at the top of
+      // the column — the two read as one row, which is how a changelog is scanned. The title itself
+      // is the author's heading, so the arbitrary variants below tune it for this context: a step up
+      // in size, no top margin (prose gives an h2 `mt-10`, which is what dropped it below the chip),
+      // and no bottom rule (the entry already ends in one — two rules per entry read as a table).
+      className="mb-8 grid gap-4 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:grid-cols-[10rem_1fr] md:items-baseline [&_h2]:border-0 [&_h2]:pb-0 [&_h2]:text-2xl [&_h3]:text-xl"
     >
       <div className="not-prose md:sticky md:top-24">
         {/* The label is a CHIP, not a line of text: a changelog is scanned down its left edge, and a
@@ -58,11 +72,6 @@ export function Update({
         >
           {label}
         </a>
-        {description && (
-          // Slightly more room than before: the chip has its own padding, so `mt-1` read as
-          // touching it.
-          <div className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{description}</div>
-        )}
         {tags && tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {tags.map((tag) => (
@@ -73,7 +82,29 @@ export function Update({
           </div>
         )}
       </div>
-      <div className="min-w-0">{children}</div>
+      {/* The entry's own content, and the description with it — NOT over in the label column, where
+          it sat a whole column away from the words it describes. It reads as the title's subtitle,
+          so it goes directly under the title when the entry opens with one, and leads the entry
+          when it doesn't. Splitting the children is the only way to land between the two: the title
+          is the author's own heading, not a prop.
+
+          `startsWithHeading` degrades safely — if headings are ever mapped to a component, the test
+          stops matching and the description leads the entry instead of following the title. Wrong
+          order, never a lost description. */}
+      <div className="min-w-0 [&>:first-child]:mt-0">
+        {startsWithHeading ? (
+          <>
+            {kids[0]}
+            {descriptionLine}
+            {kids.slice(1)}
+          </>
+        ) : (
+          <>
+            {descriptionLine}
+            {children}
+          </>
+        )}
+      </div>
     </div>
   );
 }
