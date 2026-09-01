@@ -96,6 +96,8 @@ export type DocsConfig = z.infer<typeof docsConfigSchema>;
 /** Top-level keys Papervine actively understands; others are passed through but flagged. */
 const KNOWN_KEYS = new Set([
   "$schema", "name", "description", "theme", "appearance", "logo", "favicon", "colors",
+  // `banner` is modelled and RENDERED above — it was missing here, so every site with a banner
+  // logged "Unsupported docs.json keys (ignored): banner" while happily rendering it.
   "navigation", "navbar", "footer", "seo", "markdown", "banner",
   // Reader-auth gating (SPEC §11.2) is configured in the dashboard, not docs.json, but
   // representative docs repos may still carry an `authentication` block — pass it through

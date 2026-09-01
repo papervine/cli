@@ -48,6 +48,15 @@ export type Page = {
 export type AssetDimensions = Record<string, { width: number; height: number }>;
 
 export type ContentSource = {
+  /**
+   * Identity of this source, for the per-request memo keys below. Two sources in ONE request
+   * (which happens whenever the app host renders a tenant: the root layout resolves the
+   * platform's own content while the page renders a site's draft) must not share a cache entry —
+   * without this the first `loadConfig()` in the request wins for every later caller, and the
+   * symptom is a preview that renders the right PAGES with the wrong site's nav, colours and
+   * banner. Optional so a test mock can omit it; every real source sets it.
+   */
+  id?: string;
   loadConfig(): Promise<DocsConfig>;
   loadPage(slug: string): Promise<Page | null>;
   listPageSlugs(): Promise<string[]>;
@@ -131,6 +140,7 @@ export function fsSource(dir: string): ContentSource {
   }
 
   return {
+    id: `fs:${CONTENT_DIR}`,
     async loadConfig() {
       const raw = await fs.readFile(path.join(CONTENT_DIR, "docs.json"), "utf8");
       const { config, warnings } = parseDocsConfig(JSON.parse(raw));
@@ -230,15 +240,37 @@ function source(): ContentSource {
 }
 
 // Public API — cached per request, keyed by args. Delegates to the active source.
-export const loadConfig = cache((): Promise<DocsConfig> => source().loadConfig());
-export const loadPage = cache((slug: string): Promise<Page | null> => source().loadPage(slug));
-export const listPageSlugs = cache((): Promise<string[]> => source().listPageSlugs());
-export const loadRaw = cache(
-  (relPath: string): Promise<string | null> => source().loadRaw?.(relPath) ?? Promise.resolve(null),
+//
+// EVERY key starts with the active source's id (see ContentSource.id). React's `cache()` keys on
+// arguments alone, so without it `loadConfig()` — which takes none — has exactly one entry per
+// request, and the first caller decides what every later caller sees. That is a real bug, not a
+// theoretical one: the root layout runs on every host and resolves the PLATFORM's content when
+// the host is the app host, so the draft preview rendered under it inherited the platform's
+// docs.json — right pages, wrong nav, wrong colours, wrong banner, and nothing in the code to
+// point at. The id makes concurrent sources in one request independent.
+const sourceId = (): string => contentContext.getStore()?.id ?? "default";
+
+const configFor = cache((_id: string): Promise<DocsConfig> => source().loadConfig());
+export const loadConfig = (): Promise<DocsConfig> => configFor(sourceId());
+
+const pageFor = cache((_id: string, slug: string): Promise<Page | null> => source().loadPage(slug));
+export const loadPage = (slug: string): Promise<Page | null> => pageFor(sourceId(), slug);
+
+const slugsFor = cache((_id: string): Promise<string[]> => source().listPageSlugs());
+export const listPageSlugs = (): Promise<string[]> => slugsFor(sourceId());
+
+const rawFor = cache(
+  (_id: string, relPath: string): Promise<string | null> =>
+    source().loadRaw?.(relPath) ?? Promise.resolve(null),
 );
-export const listRaw = cache(
-  (prefix: string): Promise<string[]> => source().listRaw?.(prefix) ?? Promise.resolve([]),
+export const loadRaw = (relPath: string): Promise<string | null> => rawFor(sourceId(), relPath);
+
+const rawListFor = cache(
+  (_id: string, prefix: string): Promise<string[]> => source().listRaw?.(prefix) ?? Promise.resolve([]),
 );
-export const loadAssetDimensions = cache(
-  (): Promise<AssetDimensions> => source().loadAssetDimensions?.() ?? Promise.resolve({}),
+export const listRaw = (prefix: string): Promise<string[]> => rawListFor(sourceId(), prefix);
+
+const dimensionsFor = cache(
+  (_id: string): Promise<AssetDimensions> => source().loadAssetDimensions?.() ?? Promise.resolve({}),
 );
+export const loadAssetDimensions = (): Promise<AssetDimensions> => dimensionsFor(sourceId());
