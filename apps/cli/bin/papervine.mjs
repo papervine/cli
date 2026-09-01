@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Papervine CLI — `papervine dev` previews any docs repo locally: run it in a
 // folder of MDX + docs.json and it serves that folder with the Papervine renderer
-// (SPEC §10.6). A local dev tool only — it ships the renderer, never the hosted
-// control plane.
+// (SPEC §10.6). It ships the renderer, never the hosted control plane.
+//
+// `signup` / `login` / `logout` / `whoami` do talk to the hosted control plane, and they do it
+// the way SPEC §10.6 said a CLI is allowed to: as a thin HTTPS client over the public OAuth
+// device grant (RFC 8628, SPEC §11.4). Four `fetch` calls and a JSON file — no better-auth, no
+// database driver, nothing that would breach the packaging boundary. See `auth.mjs`.
 //
 // The renderer is *prebuilt*: `npm publish` runs `scripts/prepack.mjs`, which
 // builds the Next app and normalizes it into `server/`. So this script starts a
@@ -17,14 +21,40 @@
 
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
 import { Socket } from "node:net";
 import { createInterface } from "node:readline";
 import { createRequire } from "node:module";
 import path from "node:path";
 
 import { parseServerArgs, parseNewArgs, validateContentDir, validateNewTarget } from "./args.mjs";
-import { bold, brand, brandLight, dim, red, rows, yellow } from "./style.mjs";
+import {
+  CLIENT_ID,
+  MAX_POLL_SECONDS,
+  authEndpoint,
+  credentialsPath,
+  emptyStore,
+  formatUserCode,
+  parseAuthArgs,
+  parseStore,
+  pollDecision,
+  readCredential,
+  removeCredential,
+  resolveApiOrigin,
+  upsertCredential,
+  verificationTarget,
+} from "./auth.mjs";
+import { bold, brand, brandLight, dim, green, red, rows, yellow } from "./style.mjs";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SERVER_ENTRY = path.join(PKG_ROOT, "server", "server.js");
@@ -147,6 +177,7 @@ function printHelp() {
       ["papervine dev ./docs", "Preview a subfolder"],
       ["papervine dev -p 4000", "Preview on a specific port"],
       ["papervine serve ./docs", "Serve it for real, behind your own proxy"],
+      ["papervine signup", "Create a Papervine account without leaving the terminal"],
     ]),
   );
   out.push("");
@@ -157,6 +188,10 @@ function printHelp() {
       ["new [dir]", "Create a documentation site (default: .)"],
       ["dev [dir]", "Serve your site locally while you write (default: .)"],
       ["serve [dir]", "Serve your site for real — binds every interface (default: .)"],
+      ["signup", "Create a Papervine account from this terminal"],
+      ["login", "Sign this terminal in to an existing account"],
+      ["logout", "Forget the stored credential"],
+      ["whoami", "Show which account this terminal is signed in as"],
     ]),
   );
   out.push("");
@@ -168,6 +203,8 @@ function printHelp() {
       ["--host <addr>", "dev/serve — bind address (dev: 127.0.0.1, serve: 0.0.0.0)"],
       ["-y, --yes", "dev — create a site if there are no docs, without asking"],
       ["-f, --force", "new — scaffold into a directory that isn't empty"],
+      ["--url <origin>", "signup/login/… — a self-hosted control plane"],
+      ["--no-browser", "signup/login — print the URL instead of opening a browser"],
       ["-h, --help", "Show this help"],
       ["-v, --version", "Print the version"],
     ]),
@@ -589,6 +626,346 @@ async function runServer(argv, mode) {
   child.on("exit", (code, signal) => process.exit(code ?? SIGNAL_EXIT[signal] ?? 1));
 }
 
+/* ------------------------------------------------------------------ account commands ------ */
+
+/**
+ * The credential store's path for THIS machine, and the two operations over it.
+ *
+ * Written 0600 and re-chmodded after every write: `writeFileSync`'s `mode` only applies when it
+ * *creates* the file, so a store written once with a loose umask stays loose forever. A session
+ * token in a world-readable file on a shared box is the whole risk this file carries.
+ */
+function storePath() {
+  return credentialsPath({ env: process.env, home: homedir(), platform: process.platform });
+}
+
+function loadStore() {
+  try {
+    return parseStore(readFileSync(storePath(), "utf8"));
+  } catch {
+    return emptyStore();
+  }
+}
+
+function saveStore(store) {
+  const file = storePath();
+  mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  writeFileSync(file, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
+  try {
+    chmodSync(file, 0o600);
+  } catch {
+    // A filesystem without POSIX modes (a Windows share, some container mounts) — the write
+    // succeeded, which is what matters; don't fail a login over permissions we can't set.
+  }
+}
+
+/** POST JSON, and never throw on an HTTP error — the device grant signals through the body. */
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    /* an HTML error page from a proxy, say */
+  }
+  return { ok: res.ok, status: res.status, json };
+}
+
+/**
+ * Open a URL in the user's browser, best-effort.
+ *
+ * Never awaited and never fatal: this is a convenience on top of a URL we have already printed.
+ * Failing to launch a browser must not fail a login — in a container, over SSH, or under an
+ * agent there is no browser to launch and the printed URL is the actual interface.
+ */
+function openBrowser(url) {
+  const [cmd, args] =
+    process.platform === "darwin"
+      ? ["open", [url]]
+      : process.platform === "win32"
+        ? ["cmd", ["/c", "start", "", url]]
+        : ["xdg-open", [url]];
+  try {
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true });
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    /* printed above; nothing more to do */
+  }
+}
+
+const sleep = (seconds) => new Promise((r) => setTimeout(r, seconds * 1000));
+
+/**
+ * `papervine signup` / `papervine login` — the OAuth 2.0 Device Authorization Grant (RFC 8628).
+ *
+ * The two commands are one flow: ask the control plane for a code pair, send the human to a URL,
+ * poll until they approve. They differ only in where the browser lands — the sign-up form or the
+ * approval page — which is the whole reason this can be a *browser* handoff instead of a
+ * password prompt. That difference matters more than it looks:
+ *
+ *  - **No password ever reaches this process.** Nothing to leak in a shell history, a CI log, or
+ *    an agent transcript.
+ *  - **Social sign-in works.** "Continue with GitHub" is not something a terminal prompt can do,
+ *    and it is how a large share of people actually have accounts.
+ *  - **It is not ours.** The same endpoints are advertised at
+ *    `/.well-known/oauth-authorization-server`, so an agent that speaks the device grant can do
+ *    all of this without this package installed. These commands are a convenience over a public
+ *    door — deliberately, because an onboarding path that only works for people who install our
+ *    CLI does not compose with anything.
+ *
+ * @param {string[]} argv
+ * @param {boolean} create - land the browser on the sign-up form rather than the approval page
+ */
+async function runAuth(argv, create) {
+  let plan;
+  try {
+    plan = parseAuthArgs(argv);
+  } catch (err) {
+    fail(`${err.message}\n  Run \`papervine --help\`.`);
+  }
+  if (plan.help) {
+    printHelp();
+    return;
+  }
+
+  let origin;
+  try {
+    origin = resolveApiOrigin(plan, process.env);
+  } catch (err) {
+    fail(`${err.message}\n  Pass \`--url https://papervine.io\` or set PAPERVINE_API_URL.`);
+  }
+
+  // Already signed in to this control plane? Say so instead of minting a second session — a
+  // command that silently re-authenticates makes it impossible to tell whether the last one
+  // worked.
+  const existing = readCredential(loadStore(), origin);
+  if (existing && !create) {
+    console.log(
+      `${brand("▲ papervine")} already signed in to ${bold(origin)}` +
+        `${existing.email ? ` as ${bold(existing.email)}` : ""}`,
+    );
+    console.log(`  ${dim("`papervine logout` first to sign in as someone else.")}`);
+    return;
+  }
+
+  const codeRes = await postJson(authEndpoint(origin, "/device/code"), {
+    client_id: CLIENT_ID,
+    // No `scope`: this control plane doesn't enforce scopes yet and the metadata document
+    // says so, so asking for one would be theatre.
+  }).catch((e) => ({ ok: false, status: 0, json: null, netError: e }));
+
+  if (!codeRes.ok || !codeRes.json?.device_code) {
+    // `fetch` reports every transport problem as the same useless "fetch failed" and hides the
+    // real one on `.cause` — so DNS failures, refused connections and TLS errors all read
+    // identically. Unwrap it: `ENOTFOUND app.localhost` is a completely different next step
+    // from `ECONNREFUSED`, and on macOS the former is a real trap (Node does not resolve
+    // `*.localhost`, though browsers do — so `--url http://127.0.0.1:<port>` is the local-dev
+    // form even though the browser page will be on `app.localhost`).
+    const detail =
+      codeRes.netError?.cause?.message ??
+      codeRes.netError?.message ??
+      codeRes.json?.error_description ??
+      codeRes.json?.message ??
+      `HTTP ${codeRes.status}`;
+    fail(
+      `couldn't start sign-in at ${origin} — ${detail}\n` +
+        `  Check the URL, or \`--url\` for a self-hosted control plane.`,
+    );
+  }
+
+  const {
+    device_code: deviceCode,
+    user_code: userCode,
+    verification_uri: verificationUri,
+    verification_uri_complete: verificationUriComplete,
+    interval,
+  } = codeRes.json;
+
+  const target = verificationTarget({
+    verificationUri,
+    verificationUriComplete,
+    userCode,
+    create,
+  });
+
+  console.log(`${brand("▲ papervine")} ${create ? "create your account" : "sign in"}\n`);
+  console.log(`  ${dim("Your code")}   ${bold(formatUserCode(userCode))}`);
+  console.log(`  ${dim("Open")}        ${brandLight(target)}\n`);
+
+  // A TTY gets a browser; a pipe, a container or an agent gets the URL and nothing else. Same
+  // rule as the scaffold prompt: the convenient path must never be the only path.
+  if (plan.browser && interactive()) {
+    openBrowser(target);
+  } else {
+    console.log(`  ${dim("Waiting for that page to be approved…")}\n`);
+  }
+
+  let wait = typeof interval === "number" && interval > 0 ? interval : 5;
+  const deadline = Date.now() + MAX_POLL_SECONDS * 1000;
+
+  for (;;) {
+    if (Date.now() > deadline) {
+      fail(`timed out waiting for approval — run \`papervine ${create ? "signup" : "login"}\` again.`);
+    }
+    await sleep(wait);
+
+    const res = await postJson(authEndpoint(origin, "/device/token"), {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: deviceCode,
+      client_id: CLIENT_ID,
+    }).catch(() => ({ ok: false, status: 0, json: null }));
+
+    // A transport failure is not a protocol answer: a dropped wifi connection mid-flow should
+    // keep waiting, not abandon a code the user is about to approve.
+    if (res.status === 0) continue;
+
+    const decision = pollDecision(
+      {
+        ok: res.ok,
+        error: res.json?.error,
+        errorDescription: res.json?.error_description ?? res.json?.message,
+      },
+      wait,
+    );
+    wait = decision.intervalSeconds;
+
+    if (decision.action === "wait") continue;
+    if (decision.action === "stop") fail(decision.message);
+
+    // Approved. Store the credential before anything else can fail — a token we hold but
+    // didn't persist means the user approves again for no reason.
+    const token = {
+      accessToken: res.json.access_token,
+      expiresIn: res.json.expires_in,
+    };
+    const identity = await fetchIdentity(origin, token.accessToken);
+    saveStore(
+      upsertCredential(loadStore(), origin, {
+        ...token,
+        email: identity?.user?.email,
+        name: identity?.user?.name,
+      }),
+    );
+
+    console.log(
+      `${green("✓")} signed in to ${bold(origin)}` +
+        `${identity?.user?.email ? ` as ${bold(identity.user.email)}` : ""}`,
+    );
+    console.log(`  ${dim(`credential saved to ${storePath()}`)}`);
+    if (identity && identity.organizations?.length === 0) {
+      console.log(
+        `\n  ${yellow("!")} no workspace yet — finish setup at ${brandLight(new URL("/", target).origin)}`,
+      );
+    }
+    return;
+  }
+}
+
+/** GET /api/me with a bearer token. Returns the payload, or null on any failure. */
+async function fetchIdentity(origin, accessToken) {
+  try {
+    const res = await fetch(`${origin}/api/me`, {
+      headers: { authorization: `Bearer ${accessToken}`, accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function runLogout(argv) {
+  let plan;
+  try {
+    plan = parseAuthArgs(argv);
+  } catch (err) {
+    fail(`${err.message}\n  Run \`papervine --help\`.`);
+  }
+  if (plan.help) {
+    printHelp();
+    return;
+  }
+  let origin;
+  try {
+    origin = resolveApiOrigin(plan, process.env);
+  } catch (err) {
+    fail(err.message);
+  }
+
+  const { store, removed } = removeCredential(loadStore(), origin);
+  if (!removed) {
+    console.log(`${brand("▲ papervine")} not signed in to ${bold(origin)} — nothing to do.`);
+    if (process.env.PAPERVINE_TOKEN) {
+      // Worth saying out loud: the env var wins over the store, so clearing the store would
+      // look like it did nothing.
+      console.log(
+        `  ${yellow("!")} PAPERVINE_TOKEN is set in this environment — unset it to sign out.`,
+      );
+    }
+    return;
+  }
+  saveStore(store);
+  console.log(`${green("✓")} signed out of ${bold(origin)}`);
+  console.log(
+    `  ${dim("The session is still valid on the server until it expires or you revoke it.")}`,
+  );
+}
+
+async function runWhoami(argv) {
+  let plan;
+  try {
+    plan = parseAuthArgs(argv);
+  } catch (err) {
+    fail(`${err.message}\n  Run \`papervine --help\`.`);
+  }
+  if (plan.help) {
+    printHelp();
+    return;
+  }
+  let origin;
+  try {
+    origin = resolveApiOrigin(plan, process.env);
+  } catch (err) {
+    fail(err.message);
+  }
+
+  // An explicit token in the environment wins over the store — that's how CI and an agent
+  // sandbox pass one without writing to a home directory that may not persist.
+  const stored = readCredential(loadStore(), origin);
+  const token = process.env.PAPERVINE_TOKEN || stored?.accessToken;
+  if (!token) {
+    console.log(`${brand("▲ papervine")} not signed in to ${bold(origin)}`);
+    console.log(`  ${dim("Run `papervine login` (or `papervine signup` for a new account).")}`);
+    process.exit(1);
+  }
+
+  const identity = await fetchIdentity(origin, token);
+  if (!identity) {
+    // The token is present but the server won't take it — expired, revoked, or pointed at the
+    // wrong control plane. Say which, because "unauthorized" alone sends people to their
+    // password manager for a flow that has no password.
+    fail(
+      `the stored credential for ${origin} was rejected.\n` +
+        `  It may have expired or been revoked — run \`papervine login\` again.`,
+    );
+  }
+
+  console.log(`${brand("▲ papervine")} ${bold(identity.user.email)} ${dim(`at ${origin}`)}`);
+  if (identity.user.name) console.log(`  ${dim("name")}       ${identity.user.name}`);
+  const orgs = identity.organizations ?? [];
+  console.log(
+    `  ${dim("workspaces")} ${orgs.length ? orgs.map((o) => o.slug).join(", ") : dim("none yet")}`,
+  );
+  if (process.env.PAPERVINE_TOKEN) {
+    console.log(`  ${dim("using PAPERVINE_TOKEN from the environment")}`);
+  }
+}
+
 const [, , command, ...rest] = process.argv;
 
 if (!command || command === "-h" || command === "--help" || command === "help") {
@@ -599,6 +976,14 @@ if (!command || command === "-h" || command === "--help" || command === "help") 
   await runServer(rest, "serve");
 } else if (command === "new") {
   runNew(rest);
+} else if (command === "signup") {
+  await runAuth(rest, true);
+} else if (command === "login") {
+  await runAuth(rest, false);
+} else if (command === "logout") {
+  runLogout(rest);
+} else if (command === "whoami") {
+  await runWhoami(rest);
 } else if (command === "-v" || command === "--version" || command === "version") {
   console.log(version());
 } else {

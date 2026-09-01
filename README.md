@@ -14,7 +14,7 @@ Point it at a folder of MDX and a `docs.json`. Profit.
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-Elastic%20v2-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Sign in](#papervine-signup--login--logout--whoami) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -158,6 +158,54 @@ Two things differ from `dev`, and nothing else does:
 - **It never scaffolds.** `dev` offers to create a starter site when it finds no `docs.json`;
   `serve` fails, because a production server that invents content hides the real problem — a
   wrong path, an unmounted volume.
+
+#### `papervine signup` · `login` · `logout` · `whoami`
+
+You don't need an account to use this package — everything above works offline. An account is for
+the hosted product, and you can create one without leaving the terminal:
+
+```
+papervine signup    # create a Papervine account
+papervine login     # sign in to one you already have
+papervine whoami    # who is this terminal signed in as?
+papervine logout    # forget the stored credential
+```
+
+`signup` prints a short code and opens your browser; you create the account (or continue with
+Google/GitHub), approve the code, and the command finishes:
+
+```
+▲ papervine create your account
+
+  Your code   7LRB-Z9EN
+  Open        https://app.papervine.io/signup?redirect=%2Fdevice%3Fuser_code%3D7LRBZ9EN
+
+✓ signed in to https://papervine.io as you@example.com
+  credential saved to ~/.config/papervine/credentials.json
+```
+
+**Options**
+
+| Flag             | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `--url <origin>` | A self-hosted control plane (or set `PAPERVINE_API_URL`)         |
+| `--no-browser`   | Print the URL instead of opening a browser                      |
+
+**No password ever reaches this process.** These commands run the OAuth 2.0 Device Authorization
+Grant ([RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)) — the flow a smart TV uses — so
+the account part happens in a browser. That's what makes "Continue with Google" work from a
+terminal, and it means nothing secret lands in a shell history, a CI log, or an agent transcript.
+
+The credential is written to `~/.config/papervine/credentials.json` (`$XDG_CONFIG_HOME` honoured,
+`%APPDATA%\papervine\` on Windows) with `0600` permissions, keyed by control-plane origin.
+`PAPERVINE_TOKEN` overrides the file, for CI and sandboxes.
+
+On a machine with no browser, `--no-browser` prints the URL and waits — open it anywhere, and the
+terminal finishes on its own.
+
+<sub>The endpoints behind this are public and documented, so an agent can walk the same flow
+without this package installed — see
+[Agent sign-in](https://docs.papervine.io/features/agent-auth).</sub>
 
 #### Deploy it to Vercel
 
@@ -375,6 +423,9 @@ compiled in.
 It carries **none** of the hosted control plane: no authentication, database, object
 storage, or realtime. Those are services of a hosted deployment, not things a local
 previewer needs, so they are absent from the package rather than disabled at runtime.
+
+That includes [`signup` / `login`](#papervine-signup--login--logout--whoami): those don't embed an
+auth system, they make a few HTTPS requests to one and write a JSON file.
 
 **API reference pages are generated from your OpenAPI spec** — one page per endpoint, with
 parameters, schemas, a language-tabbed request sample and a **Try it** console that calls the real
