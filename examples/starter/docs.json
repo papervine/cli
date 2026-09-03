@@ -16,6 +16,13 @@
   "appearance": {
     "default": "light"
   },
+  "assistant": {
+    "starterQuestions": [
+      "How do I get started with Papervine?",
+      "Which components can I use in MDX?",
+      "How do I add an OpenAPI spec?"
+    ]
+  },
   "navigation": {
     "tabs": [
       {
