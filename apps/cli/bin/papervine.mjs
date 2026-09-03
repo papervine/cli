@@ -483,7 +483,7 @@ async function runServer(argv, mode) {
   const serving = mode === "serve";
   let plan;
   try {
-    plan = parseServerArgs(argv, process.cwd());
+    plan = parseServerArgs(argv, process.cwd(), process.env);
   } catch (err) {
     fail(`${err.message}\n  Run \`papervine --help\`.`);
   }

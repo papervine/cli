@@ -230,3 +230,55 @@ describe("validateContentDir's hint", () => {
     expect(validateContentDir(probe)).toContain("papervine dev ./docs");
   });
 });
+
+describe("$PORT and $PAPERVINE_CONTENT (zero-config platform deploys)", () => {
+  // Dokploy, Railway, Render, Fly and every other buildpack platform assign a port and run
+  // `npm start`. Before this, the CLI always bound 3000 while the platform routed somewhere
+  // else — a process that logs "ready" and receives no traffic, with nothing to indicate why.
+  it("takes the port from $PORT when no flag is given", () => {
+    expect(parseServerArgs([], CWD, { PORT: "8080" }).port).toBe(8080);
+  });
+
+  it("lets --port win over $PORT", () => {
+    expect(parseServerArgs(["--port", "4000"], CWD, { PORT: "8080" }).port).toBe(4000);
+  });
+
+  it("treats $PORT as explicit, so a busy port fails instead of moving", () => {
+    // Silently moving to the next free port is right for a laptop and wrong on a platform:
+    // it would bind somewhere nothing routes to and look healthy doing it.
+    expect(parseServerArgs([], CWD, { PORT: "8080" }).portExplicit).toBe(true);
+  });
+
+  it("falls back to the default when $PORT is absent or blank", () => {
+    expect(parseServerArgs([], CWD, {}).port).toBe(DEFAULT_PORT);
+    expect(parseServerArgs([], CWD, { PORT: "" }).port).toBe(DEFAULT_PORT);
+    expect(parseServerArgs([], CWD, { PORT: "   " }).port).toBe(DEFAULT_PORT);
+  });
+
+  it("trims $PORT, since a platform-supplied value can carry whitespace", () => {
+    expect(parseServerArgs([], CWD, { PORT: " 8080 " }).port).toBe(8080);
+  });
+
+  it("rejects a non-numeric $PORT and names PORT, not --port", () => {
+    // The message has to name what the operator actually set, or they go looking for a flag
+    // they never passed.
+    expect(() => parseServerArgs([], CWD, { PORT: "abc" })).toThrow(/PORT must be a number/);
+    expect(() => parseServerArgs([], CWD, { PORT: "abc" })).not.toThrow(/--port/);
+  });
+
+  it("takes the content dir from $PAPERVINE_CONTENT when no directory is given", () => {
+    expect(parseServerArgs([], CWD, { PAPERVINE_CONTENT: "./docs" }).dir).toBe(
+      path.resolve(CWD, "docs"),
+    );
+  });
+
+  it("lets a positional directory win over $PAPERVINE_CONTENT", () => {
+    expect(parseServerArgs(["./other"], CWD, { PAPERVINE_CONTENT: "./docs" }).dir).toBe(
+      path.resolve(CWD, "other"),
+    );
+  });
+
+  it("ignores a blank $PAPERVINE_CONTENT rather than resolving an empty path", () => {
+    expect(parseServerArgs([], CWD, { PAPERVINE_CONTENT: "  " }).dir).toBe(CWD);
+  });
+});

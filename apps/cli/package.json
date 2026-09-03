@@ -1,7 +1,7 @@
 {
   "name": "papervine",
   "version": "0.1.0",
-  "description": "Serve a docs site of MDX + docs.json — locally or in production. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
+  "description": "Serve a docs site of MDX + docs.json \u2014 locally or in production. Mintlify-compatible, and an open-source alternative to GitBook and ReadMe.",
   "type": "module",
   "license": "Elastic-2.0",
   "homepage": "https://github.com/papervine/papervine#readme",
@@ -44,6 +44,7 @@
   ],
   "scripts": {
     "build": "next build",
+    "start": "node bin/papervine.mjs serve",
     "prepack": "node scripts/prepack.mjs"
   },
   "devDependencies": {

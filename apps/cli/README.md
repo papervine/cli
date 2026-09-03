@@ -14,7 +14,7 @@ Point it at a folder of MDX and a `docs.json`. Profit.
 
 [![npm](https://img.shields.io/npm/v/papervine?logo=npm&label=npm&color=7C3AED)](https://www.npmjs.com/package/papervine) [![license](https://img.shields.io/badge/license-Elastic%20v2-7C3AED)](./LICENSE) [![node](https://img.shields.io/badge/node-%E2%89%A520.9-7C3AED?logo=nodedotjs&logoColor=white)](https://nodejs.org) [![docs](https://img.shields.io/badge/docs-papervine.io-7C3AED)](https://docs.papervine.io)
 
-[Quickstart](#quickstart) · [Commands](#create-a-site) · [Sign in](#papervine-signup--login--logout--whoami) · [Deploy](#deploy-it-to-vercel) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
+[Quickstart](#quickstart) · [Commands](#create-a-site) · [Sign in](#papervine-signup--login--logout--whoami) · [Deploy](#deploy-it-anywhere-that-runs-npm-start) · [Self-hosting](#papervine-serve-dir) · [AI assistant](#ai-assistant) · [MCP](#mcp-server) · [What ships](#what-ships-in-this-package) · [Compatibility](#compatibility) · [Docs](https://docs.papervine.io)
 
 <img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/screenshot.png" width="900" alt="A docs site rendered by papervine dev — navigation, component gallery and a copyable snippet, in dark mode" />
 
@@ -206,6 +206,31 @@ terminal finishes on its own.
 <sub>The endpoints behind this are public and documented, so an agent can walk the same flow
 without this package installed — see
 [Agent sign-in](https://docs.papervine.io/features/agent-auth).</sub>
+
+#### Deploy it anywhere that runs `npm start`
+
+Dokploy, Railway, Render, Fly, Heroku — anything that builds a repo and runs `npm start`. A site
+made by `papervine new` is ready with no configuration: its `package.json` depends on `papervine`
+and starts it.
+
+```json
+{
+  "scripts": { "start": "papervine serve ." },
+  "dependencies": { "papervine": "^0.1.0" }
+}
+```
+
+`serve` binds the port the platform assigns through `$PORT`, on every interface, so a health check
+reaches it. Adding this to a docs repo you already have is two commands:
+
+```
+npm install papervine
+npm pkg set scripts.start="papervine serve ."
+```
+
+Each setting takes a flag, then an environment variable, then a default — `--port` / `PORT`,
+`--host` / `PAPERVINE_HOST`, and the directory / `PAPERVINE_CONTENT` — so a platform can configure
+it entirely through the environment.
 
 #### Deploy it to Vercel
 

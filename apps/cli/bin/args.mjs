@@ -20,7 +20,7 @@ export const DEFAULT_PORT = 3000;
  *            host: string|undefined, hostExplicit: boolean}}
  * @throws {Error} on an unknown flag or an unusable --port
  */
-export function parseServerArgs(argv, cwd) {
+export function parseServerArgs(argv, cwd, env = {}) {
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
@@ -49,16 +49,32 @@ export function parseServerArgs(argv, cwd) {
     };
   }
 
+  // Port precedence: `--port`, then `$PORT`, then 3000 — the same shape as `--host` /
+  // `PAPERVINE_HOST` below.
+  //
+  // `$PORT` is what makes this deployable with no configuration on Dokploy, Railway, Render,
+  // Fly, Heroku and every other buildpack platform: they assign a port and expect the process to
+  // bind it. Ignoring it meant binding 3000 while the platform routed to something else, so the
+  // health check failed and no traffic ever arrived — with the logs cheerfully reporting a
+  // server ready on 3000.
+  const contentFromEnv =
+    typeof env.PAPERVINE_CONTENT === "string" && env.PAPERVINE_CONTENT.trim()
+      ? env.PAPERVINE_CONTENT.trim()
+      : undefined;
+
   let port = DEFAULT_PORT;
-  if (values.port !== undefined) {
+  const fromEnv = typeof env.PORT === "string" ? env.PORT.trim() : "";
+  const raw = values.port ?? (fromEnv || undefined);
+  const source = values.port !== undefined ? "--port" : "PORT";
+  if (raw !== undefined) {
     // parseArgs hands back a string; reject anything that isn't a real port rather
     // than letting `NaN` reach the server and surface as an opaque listen error.
-    if (!/^\d+$/.test(values.port)) {
-      throw new Error(`--port must be a number, got "${values.port}"`);
+    if (!/^\d+$/.test(raw)) {
+      throw new Error(`${source} must be a number, got "${raw}"`);
     }
-    port = Number(values.port);
+    port = Number(raw);
     if (port < 1 || port > 65535) {
-      throw new Error(`--port must be between 1 and 65535, got ${port}`);
+      throw new Error(`${source} must be between 1 and 65535, got ${port}`);
     }
   }
 
@@ -75,11 +91,18 @@ export function parseServerArgs(argv, cwd) {
   return {
     help: false,
     port,
-    dir: path.resolve(cwd, positionals[0] ?? "."),
+    // Directory precedence: the positional, then `$PAPERVINE_CONTENT`, then the cwd. The env
+    // var already names the docs folder everywhere else in this app (the server reads it at
+    // request time), so honouring it here means a deployment can set one variable and run a
+    // bare `papervine serve` — no arguments to bake into a platform's start command.
+    dir: path.resolve(cwd, positionals[0] ?? contentFromEnv ?? "."),
     yes: Boolean(values.yes),
-    // An explicit `--port` is a request, not a suggestion: the caller told us where to serve,
-    // so a busy port is an error rather than something to quietly move away from.
-    portExplicit: values.port !== undefined,
+    // An explicit port is a request, not a suggestion: the caller told us where to serve, so a
+    // busy port is an error rather than something to quietly move away from. `$PORT` counts as
+    // explicit for the same reason and more strongly — on a platform that assigned it, silently
+    // moving to the next free port means binding somewhere nothing routes to, which presents as
+    // a healthy process serving no traffic.
+    portExplicit: raw !== undefined,
     host: values.host?.trim(),
     hostExplicit: values.host !== undefined,
   };

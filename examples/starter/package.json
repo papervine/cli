@@ -1,0 +1,11 @@
+{
+  "name": "papervine-starter",
+  "private": true,
+  "scripts": {
+    "start": "papervine serve .",
+    "dev": "papervine dev ."
+  },
+  "dependencies": {
+    "papervine": "^0.1.0"
+  }
+}
