@@ -2,14 +2,20 @@ import "server-only";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { searchDocs, readPage, listPages, searchApi } from "./docs-tools";
+import { readAllowedUrl, searchSite } from "./search-domains";
+import type { AssistantSettings } from "./assistant-settings";
 
 /**
  * The assistant's tool layer (SPEC §8.1). Agentic retrieval: Claude decides which
  * of these to call, and how often, to answer a question. Each is a thin wrapper over
  * a capability the renderer already has — the same set a generated read-MCP would
  * expose (SPEC §8.5), so this is one implementation behind two transports.
+ *
+ * Extra-site tools (`searchSite` / `readUrl`) are registered only when the owner
+ * listed search domains. Advertising them otherwise wastes a turn on "nothing is
+ * configured".
  */
-export const assistantTools: ToolSet = {
+const docsTools: ToolSet = {
   searchDocs: tool({
     description:
       "Full-text search the documentation. Returns the most relevant page sections with titles, hrefs (with #anchors), and snippets. Call this first for most questions.",
@@ -44,3 +50,27 @@ export const assistantTools: ToolSet = {
     execute: ({ query }) => searchApi(query),
   }),
 };
+
+export function assistantTools(settings?: Pick<AssistantSettings, "searchDomains">): ToolSet {
+  const domains = settings?.searchDomains ?? [];
+  if (!domains.length) return docsTools;
+  return {
+    ...docsTools,
+    searchSite: tool({
+      description:
+        "Search the extra public sites the docs owner listed (not this documentation). Returns titles, URLs, and snippets. Call after searchDocs when the local docs don't cover the question.",
+      inputSchema: z.object({
+        query: z.string().describe("Keywords to search for on the configured sites."),
+      }),
+      execute: ({ query }) => searchSite(query, domains),
+    }),
+    readUrl: tool({
+      description:
+        "Fetch a public page from a configured search domain. Pass a full http(s) URL. Refused if the URL is not on an allowed domain.",
+      inputSchema: z.object({
+        url: z.string().describe("Absolute http(s) URL on a configured search domain."),
+      }),
+      execute: ({ url }) => readAllowedUrl(url, domains),
+    }),
+  };
+}

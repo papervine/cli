@@ -8,6 +8,7 @@ import { Banner } from "@papervine/renderer/components/mdx/Banner";
 import { Assistant } from "@papervine/renderer/components/assistant/Assistant";
 import { AskAssistantButton } from "@papervine/renderer/components/assistant/AskAssistantButton";
 import { aiConfigured } from "@papervine/renderer/lib/ai-model";
+import { assistantSettingsFromConfig } from "@papervine/renderer/lib/assistant-settings";
 
 // The docs chrome. Search works here — it's an in-memory index over the previewed folder, no
 // backend required (see api/search/route.ts).
@@ -24,6 +25,7 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
   const sections = await buildNav(config);
   // Evaluated on the server, so an unset key never reaches the browser as a disabled button.
   const assistantOn = aiConfigured();
+  const assistant = assistantSettingsFromConfig(config);
 
   return (
     <>
@@ -48,7 +50,7 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
       </div>
       {/* The panel itself. The navbar button (and Cmd-I) dispatch an event it listens for, so
           it has to be mounted whenever the launcher is. */}
-      {assistantOn && <Assistant />}
+      {assistantOn && <Assistant deflection={assistant.deflection} />}
     </>
   );
 }
