@@ -2,6 +2,8 @@ import "server-only";
 import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from "ai";
 import { aiModel, aiModelId, aiProviderOptions } from "./ai-model";
 import { assistantTools } from "./assistant-tools";
+import { assistantSettingsFromConfig } from "./assistant-settings";
+import { searchDomainsPrompt } from "./search-domains";
 import {
   contentContext,
   loadConfig,
@@ -105,6 +107,7 @@ export async function runAssistantConversation(params: {
 
   return run(async () => {
     const config = await loadConfig();
+    const settings = assistantSettingsFromConfig(config);
 
     // Log the query for analytics (SPEC §10.1). The outcome status is filled in once the
     // stream resolves (onFinish → answered/unanswered; onError → unanswered), so the
@@ -132,13 +135,21 @@ export async function runAssistantConversation(params: {
       }
     }
 
+    const extraSites = settings.searchDomains.length
+      ? ` Additional public sites you may search with searchSite / readUrl: ${searchDomainsPrompt(settings.searchDomains)}. Use them only after searchDocs comes up short, and cite those pages with their full URL.`
+      : "";
+    const deflectionLine = settings.deflection
+      ? ` If the documentation does not contain the answer, say so plainly and invite the user to email ${settings.deflection.email} rather than guessing.`
+      : ` If the documentation does not contain the answer, say so plainly rather than guessing.`;
+
     const system =
       `You are the documentation assistant for "${config.name}". ` +
       `Answer using ONLY the documentation, which you retrieve with your tools. ` +
-      `Always call searchDocs (and readPage / searchApi as needed) before answering. ` +
-      `Cite every claim as an inline Markdown link to the page you used, e.g. [Quickstart](/quickstart). ` +
-      `If the documentation does not contain the answer, say so plainly rather than guessing. ` +
-      `Be concise and use Markdown.` +
+      `Always call searchDocs (and readPage / searchApi as needed) before answering.` +
+      extraSites +
+      ` Cite every claim as an inline Markdown link to the page you used, e.g. [Quickstart](/quickstart).` +
+      deflectionLine +
+      ` Be concise and use Markdown.` +
       pageContext;
 
     const model = aiModelId();
@@ -146,7 +157,7 @@ export async function runAssistantConversation(params: {
       model: aiModel(model),
       system,
       messages: await convertToModelMessages(messages),
-      tools: assistantTools,
+      tools: assistantTools(settings),
       providerOptions: aiProviderOptions(model),
       stopWhen: stepCountIs(8),
       // Record the outcome on the logged event so the Assistant page's answered/unanswered

@@ -384,6 +384,28 @@ AI_BASE_URL=http://gpu-box.lan:8000/v1
 | `AI_LOCAL_API_KEY` | Only if your local server demands a key |
 | `AI_LOCAL_REASONING` | `1` to let a local thinking model think — off by default, because on a laptop it turned a 1.9s answer into a 40s one |
 
+**Deflection and extra search.** In `docs.json`, point unanswered questions at your support
+inbox and let the assistant fetch extra public sites when the local docs don't cover a
+question. Same knobs as the hosted dashboard; here they live next to the rest of the site
+config, because the CLI has no control plane.
+
+```json
+{
+  "assistant": {
+    "deflection": {
+      "email": "support@example.com",
+      "showHelpButton": true
+    },
+    "searchDomains": ["docs.example.com", "example.com/pricing"]
+  }
+}
+```
+
+`showHelpButton` puts a **Contact support** control on the chat panel (`mailto:`). Without
+it, the assistant still names the address when it cannot answer. Search domains accept a
+host, a `*.` wildcard, or a path prefix (`docs.example.com/api`); the assistant discovers
+pages via `llms.txt` and `sitemap.xml`, and will not follow a link off the allowlist.
+
 If the assistant doesn't appear, ask the API why — it answers `503` with the reason:
 
 ```

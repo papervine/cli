@@ -88,6 +88,19 @@ export const docsConfigSchema = z
       .passthrough()
       .optional()
       .catch(undefined),
+    // Assistant deflection + extra search domains. The hosted dashboard stores the same
+    // knobs; for the CLI they live here so a self-hosted site can configure them without
+    // a control plane. Parsed leniently — see ./assistant-settings.ts.
+    assistant: z
+      .object({
+        deflection: z.unknown().optional().catch(undefined),
+        supportEmail: z.string().optional().catch(undefined),
+        showHelpButton: z.boolean().optional().catch(undefined),
+        searchDomains: z.unknown().optional().catch(undefined),
+      })
+      .passthrough()
+      .optional()
+      .catch(undefined),
   })
   .passthrough();
 
@@ -98,7 +111,7 @@ const KNOWN_KEYS = new Set([
   "$schema", "name", "description", "theme", "appearance", "logo", "favicon", "colors",
   // `banner` is modelled and RENDERED above — it was missing here, so every site with a banner
   // logged "Unsupported docs.json keys (ignored): banner" while happily rendering it.
-  "navigation", "navbar", "footer", "seo", "markdown", "banner",
+  "navigation", "navbar", "footer", "seo", "markdown", "banner", "assistant",
   // Reader-auth gating (SPEC §11.2) is configured in the dashboard, not docs.json, but
   // representative docs repos may still carry an `authentication` block — pass it through
   // without a noisy warning.

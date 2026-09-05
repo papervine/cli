@@ -13,9 +13,11 @@ import {
   type ReactNode,
 } from "react";
 import { Streamdown } from "streamdown";
-import { Sparkles, X, Maximize2, Minimize2, ArrowUp, Paperclip } from "lucide-react";
+import { Sparkles, X, Maximize2, Minimize2, ArrowUp, Paperclip, Mail } from "lucide-react";
 import clsx from "clsx";
 import { assistantInternalTarget } from "../../lib/assistant-link";
+import { outcomeFromText } from "../../lib/assistant-outcome";
+import { deflectionMailto, type AssistantDeflection } from "../../lib/assistant-settings";
 
 /** Custom event other components dispatch to open the assistant (optionally with a query). */
 export const OPEN_EVENT = "papervine:open-assistant";
@@ -23,7 +25,14 @@ export function openAssistant(query?: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { query } }));
 }
 
-export function Assistant({ site }: { site?: string }) {
+export function Assistant({
+  site,
+  deflection = null,
+}: {
+  site?: string;
+  /** When set, unanswered questions can be handed to the support inbox. */
+  deflection?: AssistantDeflection | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -149,6 +158,21 @@ export function Assistant({ site }: { site?: string }) {
 
   const busy = status === "submitted" || status === "streaming";
   const lastIsUser = messages[messages.length - 1]?.role === "user";
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  const lastAssistantText = lastAssistant ? partsText(lastAssistant.parts) : "";
+  const unanswered =
+    !!deflection &&
+    !busy &&
+    !!lastAssistantText &&
+    outcomeFromText(lastAssistantText) === "unanswered";
+  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+  const supportHref = deflection
+    ? deflectionMailto(deflection.email, {
+        question: lastUser ? partsText(lastUser.parts) : undefined,
+        pageUrl,
+      })
+    : null;
 
   return (
     <div
@@ -164,6 +188,16 @@ export function Assistant({ site }: { site?: string }) {
           Assistant
         </div>
         <div className="flex items-center gap-1 text-zinc-500">
+          {deflection?.showHelpButton && supportHref && (
+            <a
+              href={supportHref}
+              aria-label="Contact support"
+              className="mr-1 inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Contact support
+            </a>
+          )}
           <button
             onClick={() => setExpanded((e) => !e)}
             aria-label={expanded ? "Collapse" : "Expand"}
@@ -194,6 +228,9 @@ export function Assistant({ site }: { site?: string }) {
             ))}
             {busy && lastIsUser && (
               <p className="text-sm text-zinc-400">Thinking…</p>
+            )}
+            {unanswered && supportHref && deflection && (
+              <DeflectionCard href={supportHref} email={deflection.email} />
             )}
             {error && <AssistantError error={error} />}
           </div>
@@ -251,6 +288,32 @@ export function Assistant({ site }: { site?: string }) {
 }
 
 type Part = { type: string; text?: string; state?: string };
+
+function partsText(parts: Part[]): string {
+  return parts
+    .filter((p) => p.type === "text")
+    .map((p) => p.text ?? "")
+    .join(" ")
+    .trim();
+}
+
+function DeflectionCard({ href, email }: { href: string; email: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <p className="m-0 text-zinc-700 dark:text-zinc-300">
+        The docs don’t cover this. Your support team can take it from here.
+      </p>
+      <a
+        href={href}
+        className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+      >
+        <Mail className="h-3.5 w-3.5" />
+        Contact support
+      </a>
+      <p className="m-0 mt-1 text-xs text-zinc-400">{email}</p>
+    </div>
+  );
+}
 
 /**
  * A failed request, made visible.
@@ -311,9 +374,9 @@ function Message({
             return (
               <p key={i} className="flex items-center gap-1.5 text-xs text-zinc-400">
                 <Sparkles className="h-3 w-3" />
-                {name === "searchDocs" || name === "searchApi"
+                {name === "searchDocs" || name === "searchApi" || name === "searchSite"
                   ? "Searching the docs…"
-                  : name === "readPage"
+                  : name === "readPage" || name === "readUrl"
                     ? "Reading a page…"
                     : "Working…"}
               </p>
