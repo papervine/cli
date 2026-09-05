@@ -47,8 +47,9 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
         <main className="min-w-0 flex-1">{children}</main>
       </div>
       {/* The panel itself. The navbar button (and Cmd-I) dispatch an event it listens for, so
-          it has to be mounted whenever the launcher is. */}
-      {assistantOn && <Assistant />}
+          it has to be mounted whenever the launcher is. Starter questions are the author's
+          empty-state prompts from docs.json; the component normalizes the list. */}
+      {assistantOn && <Assistant starterQuestions={config.assistant?.starterQuestions} />}
     </>
   );
 }

@@ -320,6 +320,22 @@ build, no vector database, and nothing leaves your machine except the model call
 It appears when a model is configured, and is simply absent when one isn't. You bring the model;
 the SDKs ship with the CLI.
 
+Suggested prompts for the empty chat — **starter questions** — come from `docs.json`. Up to
+three appear as clickable suggestions when the panel opens; omit the block and the empty
+state is just the disclaimer, as before.
+
+```
+{
+  "assistant": {
+    "starterQuestions": [
+      "How do I get started?",
+      "How do I customize the theme?",
+      "How do I add an OpenAPI spec?"
+    ]
+  }
+}
+```
+
 <img src="https://raw.githubusercontent.com/papervine/papervine/main/apps/cli/assets/assistant.png" width="900" alt="The assistant panel open beside a docs page, introducing itself as the documentation assistant for the site and inviting a question" />
 
 Put one of these in your docs project's `.env.local` (the CLI loads it) or export it before

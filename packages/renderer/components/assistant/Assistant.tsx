@@ -16,6 +16,10 @@ import { Streamdown } from "streamdown";
 import { Sparkles, X, Maximize2, Minimize2, ArrowUp, Paperclip } from "lucide-react";
 import clsx from "clsx";
 import { assistantInternalTarget } from "../../lib/assistant-link";
+import {
+  normalizeStarterQuestions,
+  type AssistantPanelProps,
+} from "../../lib/starter-questions";
 
 /** Custom event other components dispatch to open the assistant (optionally with a query). */
 export const OPEN_EVENT = "papervine:open-assistant";
@@ -23,7 +27,8 @@ export function openAssistant(query?: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { query } }));
 }
 
-export function Assistant({ site }: { site?: string }) {
+export function Assistant({ site, starterQuestions }: AssistantPanelProps) {
+  const questions = useMemo(() => normalizeStarterQuestions(starterQuestions), [starterQuestions]);
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -184,9 +189,7 @@ export function Assistant({ site }: { site?: string }) {
       {/* Transcript */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
         {messages.length === 0 ? (
-          <p className="mx-auto max-w-sm text-center text-sm text-zinc-400">
-            Responses are generated using AI and may contain mistakes.
-          </p>
+          <EmptyState questions={questions} onAsk={ask} />
         ) : (
           <div className="space-y-5">
             {messages.map((m) => (
@@ -251,6 +254,45 @@ export function Assistant({ site }: { site?: string }) {
 }
 
 type Part = { type: string; text?: string; state?: string };
+
+/**
+ * Empty chat: the disclaimer, plus any configured starter questions.
+ *
+ * The questions are the author's — `docs.json` or the dashboard — and clicking one
+ * is exactly "type this and send". They vanish once a message exists; a follow-up
+ * is typed, not picked from the same list. The `starter-question-text` class is the
+ * Mintlify CSS hook so a site that already styles that selector keeps working.
+ */
+function EmptyState({
+  questions,
+  onAsk,
+}: {
+  questions: string[];
+  onAsk: (text: string) => void;
+}) {
+  return (
+    <div className="mx-auto flex max-w-sm flex-col items-center gap-6">
+      <p className="text-center text-sm text-zinc-400">
+        Responses are generated using AI and may contain mistakes.
+      </p>
+      {questions.length > 0 && (
+        <div className="flex w-full flex-col gap-2">
+          <p className="text-xs font-medium text-zinc-400">Suggestions</p>
+          {questions.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => onAsk(q)}
+              className="starter-question-text rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-left text-sm text-zinc-700 hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * A failed request, made visible.

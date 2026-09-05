@@ -88,6 +88,17 @@ export const docsConfigSchema = z
       .passthrough()
       .optional()
       .catch(undefined),
+    // Suggested prompts in the assistant's empty chat (SPEC §8). The list is
+    // untyped here on purpose — `normalizeStarterQuestions` is what caps, trims
+    // and drops junk. The schema only has to accept the author's value without
+    // failing the site (a number in the array must not 500 the docs).
+    assistant: z
+      .object({
+        starterQuestions: z.array(z.unknown()).optional().catch(undefined),
+      })
+      .passthrough()
+      .optional()
+      .catch(undefined),
   })
   .passthrough();
 
@@ -99,6 +110,9 @@ const KNOWN_KEYS = new Set([
   // `banner` is modelled and RENDERED above — it was missing here, so every site with a banner
   // logged "Unsupported docs.json keys (ignored): banner" while happily rendering it.
   "navigation", "navbar", "footer", "seo", "markdown", "banner",
+  // `assistant.starterQuestions` is modelled and RENDERED in the empty chat — same
+  // class of bug as `banner` used to be: a working key reported as ignored.
+  "assistant",
   // Reader-auth gating (SPEC §11.2) is configured in the dashboard, not docs.json, but
   // representative docs repos may still carry an `authentication` block — pass it through
   // without a noisy warning.
